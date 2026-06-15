@@ -1,0 +1,23 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@hem/provider",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./cloudflare": "./src/cloudflare/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo -b --noEmit"
+	},
+	"dependencies": {
+		"@distilled.cloud/cloudflare": "0.24.8",
+		"effect": "catalog:"
+	},
+	"devDependencies": {
+		"@tsconfig/bun": "catalog:",
+		"@types/bun": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}
