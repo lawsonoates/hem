@@ -8,7 +8,7 @@ export namespace DotfileSecret {
 	export const KeychainSource = Schema.Struct({
 		/** The Bun.secrets key. */
 		name: Schema.String,
-		/** For example, "dev.hem.cli". */
+		/** For example, "hem.env". */
 		service: Schema.String,
 		type: Schema.Literal('keychain'),
 	});

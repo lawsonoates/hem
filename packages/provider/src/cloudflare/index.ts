@@ -14,7 +14,7 @@ import {
 
 export interface CloudflareInput {
 	readonly accountId: string;
-	readonly bootstrapToken: string;
+	readonly managementToken: string;
 	readonly body: {
 		readonly name: string;
 		readonly permissions: readonly string[];
@@ -165,7 +165,7 @@ export const cloudflare = (input: CloudflareInput): Provider => ({
 			}),
 			Effect.provide(
 				Layer.mergeAll(
-					fromApiToken({ apiToken: input.bootstrapToken }),
+					fromApiToken({ apiToken: input.managementToken }),
 					FetchHttpClient.layer
 				)
 			)

@@ -1,12 +1,15 @@
 import { Console, Effect } from 'effect';
 
-import type { DotfileSecret } from '../dotfile/secret';
-import { LocalSecret } from '../local-secret';
+import { DotfileSecret } from '../dotfile/secret';
+import { BunSecret } from '../secret/bun';
 import { HemError } from '../util/error';
 
 const resolveSecret = (entry: DotfileSecret.Entry) =>
 	Effect.gen(function* () {
-		const value = yield* LocalSecret.resolve(entry);
+		const value = yield* BunSecret.get({
+			name: entry.source.name,
+			service: entry.source.service,
+		});
 
 		if (!value) {
 			return yield* new HemError({
@@ -62,7 +65,7 @@ const spawnCommand = (input: {
 
 export const runCommandWithInjectedSecrets = (args: readonly string[]) =>
 	Effect.gen(function* () {
-		const manifest = yield* LocalSecret.list;
+		const manifest = yield* DotfileSecret.read;
 		const manifestEnv = yield* Effect.all(
 			manifest.secrets.map(resolveSecret),
 			{

@@ -1,8 +1,11 @@
 import { cloudflare } from '@hem/provider/cloudflare';
-import { Config, Console, Effect, Option, Redacted } from 'effect';
+import { Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
-import { LocalSecret } from '../local-secret';
+import { DotfileSecret } from '../dotfile/secret';
+import { BunSecret } from '../secret/bun';
+import { EnvSecret } from '../secret/env';
+import { ProviderSecret } from '../secret/provider';
 import { HemError } from '../util/error';
 
 const envNamePattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
@@ -16,6 +19,37 @@ const validateEnvName = (name: string) =>
 						'Env name must start with a letter or underscore and contain only letters, numbers, and underscores.',
 				})
 			);
+
+const resolveCloudflareConnection = Effect.gen(function* () {
+	const [managementToken, accountId] = yield* Effect.all(
+		[
+			BunSecret.get({
+				name: ProviderSecret.name({
+					key: 'management-token',
+					provider: 'cloudflare',
+				}),
+				service: ProviderSecret.service,
+			}),
+			BunSecret.get({
+				name: ProviderSecret.name({
+					key: 'account-id',
+					provider: 'cloudflare',
+				}),
+				service: ProviderSecret.service,
+			}),
+		],
+		{ concurrency: 'unbounded' }
+	);
+
+	if (!managementToken || !accountId) {
+		return yield* new HemError({
+			message:
+				'Cloudflare is not connected. Run `hem connect cloudflare` first.',
+		});
+	}
+
+	return { accountId, managementToken } as const;
+});
 
 const add = Command.make(
 	'add',
@@ -54,20 +88,17 @@ const add = Command.make(
 				});
 			}
 
-			const bootstrapToken = yield* Config.redacted(
-				'CLOUDFLARE_API_TOKEN'
-			);
-			const accountId = yield* Config.string('CLOUDFLARE_ACCOUNT_ID');
+			const connection = yield* resolveCloudflareConnection;
 
 			const issued = yield* cloudflare({
-				accountId,
+				accountId: connection.accountId,
 				body: {
 					expiresOn: Option.getOrUndefined(expiresOn),
 					name: Option.getOrElse(tokenName, () => `hem:${name}`),
 					notBefore: Option.getOrUndefined(notBefore),
 					permissions: [...permission],
 				},
-				bootstrapToken: Redacted.value(bootstrapToken),
+				managementToken: connection.managementToken,
 			}).mint();
 
 			if (!issued.value) {
@@ -76,24 +107,37 @@ const add = Command.make(
 				});
 			}
 
-			yield* LocalSecret.add({
+			const source: DotfileSecret.Source = {
+				name: EnvSecret.name({
+					env: name,
+					provider: 'cloudflare',
+				}),
+				service: EnvSecret.service,
+				type: 'keychain',
+			};
+
+			yield* BunSecret.set({
+				name: source.name,
+				service: source.service,
+				value: issued.value,
+			});
+
+			yield* DotfileSecret.upsert({
 				env: name,
 				expiresOn: issued.expiresOn,
 				issuedOn: issued.issuedOn,
 				permissions: [...permission],
 				provider: 'cloudflare',
+				source,
 				tokenId: issued.id,
-				value: issued.value,
 			});
 
-			yield* Console.log(
-				`✓ Added ${name} from Cloudflare and stored it in the system keychain.`
-			);
+			yield* Console.log(`✓ Added ${name} from Cloudflare`);
 		})
 ).pipe(Command.withDescription('Mint and store a provider-backed env var'));
 
 const list = Command.make('list', {}, () =>
-	LocalSecret.list.pipe(
+	DotfileSecret.read.pipe(
 		Effect.flatMap((manifest) =>
 			Effect.gen(function* () {
 				if (manifest.secrets.length === 0)
@@ -144,13 +188,18 @@ const rm = Command.make(
 	({ envName }) =>
 		Effect.gen(function* () {
 			const name = yield* validateEnvName(envName);
-			const removed = yield* LocalSecret.remove(name);
+			const removed = yield* DotfileSecret.remove(name);
 
 			if (!removed) {
 				return yield* Console.log(
 					`No env var named ${name} was found.`
 				);
 			}
+
+			yield* BunSecret.remove({
+				name: removed.source.name,
+				service: removed.source.service,
+			});
 
 			yield* Console.log(`✓ Removed ${name}.`);
 		})

@@ -4,15 +4,16 @@ import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Effect } from 'effect';
 import { Command } from 'effect/unstable/cli';
 
+import { connectCommand } from './cmd/connect';
 import { envCommand } from './cmd/env';
 import { runCommandWithInjectedSecrets } from './cmd/run';
 import { exitWithMessage } from './util/error';
 
-const HEM_SUBCOMMANDS = new Set(['env']);
+const HEM_SUBCOMMANDS = new Set(['connect', 'env']);
 
 const hem = Command.make('hem').pipe(
 	Command.withDescription('Run commands with Hem-managed env vars'),
-	Command.withSubcommands([envCommand])
+	Command.withSubcommands([connectCommand, envCommand])
 );
 
 const shouldRunHemCli = (arg: string | undefined) =>
@@ -42,7 +43,7 @@ if (shouldRunHemCli(process.argv[2])) {
 			PlatformError: (e) => exitWithMessage(e.message),
 			ProviderAuthError: (e) =>
 				exitWithMessage(
-					`${e.provider} rejected the credentials: ${e.message}. Check CLOUDFLARE_API_TOKEN.`
+					`${e.provider} rejected the credentials: ${e.message}. Run \`hem connect ${e.provider}\` to update them.`
 				),
 			ProviderRateLimitError: (e) =>
 				exitWithMessage(
