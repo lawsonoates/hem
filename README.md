@@ -6,12 +6,18 @@ Currently only supports cloudflare.
 
 ## Usage
 
+1. Connect and add token
+
 ```bash
 hem connect cloudflare
 
 hem env add R2_TOKEN \
   --from cloudflare \
   --permission "Workers R2 Storage Write"
+```
 
-hem bun run dev
+2. Use `hem` to run with secrets
+
+```bash
+hem bun dev
 ```
