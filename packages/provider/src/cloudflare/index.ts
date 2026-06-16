@@ -1,8 +1,9 @@
 import { fromApiToken } from '@distilled.cloud/cloudflare';
 import * as User from '@distilled.cloud/cloudflare/user';
-import { Effect, Layer, Stream } from 'effect';
+import { Effect, Layer } from 'effect';
 import { FetchHttpClient } from 'effect/unstable/http';
 
+import type { Grant } from '../grant';
 import type { Provider, Token } from '../provider';
 import {
 	ProviderAuthError,
@@ -11,13 +12,14 @@ import {
 	ProviderResponseError,
 	ProviderUnavailableError,
 } from '../provider';
+import { translateGrants } from './permissions';
 
 export interface CloudflareInput {
 	readonly accountId: string;
 	readonly managementToken: string;
 	readonly body: {
 		readonly name: string;
-		readonly permissions: readonly string[];
+		readonly grants: readonly Grant[];
 		readonly expiresOn?: string;
 		readonly notBefore?: string;
 	};
@@ -37,53 +39,19 @@ const toToken = (result: User.CreateTokenResponse): Token | null => {
 	};
 };
 
-/** Resolve permission group names to their Cloudflare permission group ids. */
-const resolvePermissionGroups = (names: readonly string[]) =>
-	Effect.gen(function* () {
-		const groups = yield* Stream.runCollect(
-			User.listTokenPermissionGroups.items({})
-		);
-		const idsByName = new Map(
-			[...groups].flatMap((group) =>
-				group.id && group.name ? [[group.name, group.id] as const] : []
-			)
-		);
-
-		const ids: { id: string }[] = [];
-		for (const name of names) {
-			const id = idsByName.get(name);
-			if (!id) {
-				return yield* new ProviderRequestError({
-					message: `Unknown Cloudflare permission "${name}". Permission names must match a Cloudflare token permission group, for example "Workers R2 Storage Write".`,
-					provider: PROVIDER,
-				});
-			}
-			ids.push({ id });
-		}
-		return ids;
-	});
-
 export const cloudflare = (input: CloudflareInput): Provider => ({
 	mint: () =>
 		Effect.gen(function* () {
-			const permissionGroups = yield* resolvePermissionGroups(
-				input.body.permissions
+			const policies = yield* translateGrants(
+				input.body.grants,
+				input.accountId
 			);
 
 			const result = yield* User.createToken({
 				expiresOn: input.body.expiresOn,
 				name: input.body.name,
 				notBefore: input.body.notBefore,
-				policies: [
-					{
-						effect: 'allow',
-						permissionGroups,
-						resources: {
-							[`com.cloudflare.api.account.${input.accountId}`]:
-								'*',
-						},
-					},
-				],
+				policies,
 			});
 
 			const token = toToken(result);

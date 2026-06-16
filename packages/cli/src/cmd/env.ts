@@ -1,3 +1,4 @@
+import { parseGrant } from '@hem/provider';
 import { cloudflare } from '@hem/provider/cloudflare';
 import { Console, Effect, Option } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
@@ -70,7 +71,7 @@ const add = Command.make(
 		),
 		permission: Flag.string('permission').pipe(
 			Flag.withDescription(
-				'Provider permission to grant; can be repeated'
+				'Permission to grant, e.g. "r2:write", "dns:edit@zone/example.com", or "raw:<group>"; can be repeated'
 			),
 			Flag.atLeast(1)
 		),
@@ -88,15 +89,21 @@ const add = Command.make(
 				});
 			}
 
+			const grants = yield* Effect.all(permission.map(parseGrant)).pipe(
+				Effect.mapError(
+					(error) => new HemError({ message: error.message })
+				)
+			);
+
 			const connection = yield* resolveCloudflareConnection;
 
 			const issued = yield* cloudflare({
 				accountId: connection.accountId,
 				body: {
 					expiresOn: Option.getOrUndefined(expiresOn),
+					grants,
 					name: Option.getOrElse(tokenName, () => `hem:${name}`),
 					notBefore: Option.getOrUndefined(notBefore),
-					permissions: [...permission],
 				},
 				managementToken: connection.managementToken,
 			}).mint();
