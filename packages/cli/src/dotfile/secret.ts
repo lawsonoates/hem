@@ -1,14 +1,11 @@
-import { Data, Effect, FileSystem, Path, Schema } from 'effect';
+import { Brand, Data, Effect, FileSystem, Path, Schema } from 'effect';
 
 const HEM_DIR = '.hem';
 const FILENAME = 'secrets.json';
 
 export namespace DotfileSecret {
-	/** Where a value physically lives on this machine. */
 	export const KeychainSource = Schema.Struct({
-		/** The Bun.secrets key. */
 		name: Schema.String,
-		/** For example, "hem.env". */
 		service: Schema.String,
 		type: Schema.Literal('keychain'),
 	});
@@ -16,17 +13,36 @@ export namespace DotfileSecret {
 	export const Source = Schema.Union([KeychainSource]);
 	export type Source = typeof Source.Type;
 
-	/** One injected env var. */
+	export type VarId = string & Brand.Brand<'VarId'>;
+	const VarId = Brand.make<VarId>((id) => id.startsWith('var_'));
+	export const newVarId = (): VarId => VarId(`var_${crypto.randomUUID()}`);
+
+	export const VarIdSchema = Schema.String.pipe(
+		Schema.fromBrand('VarId', VarId)
+	);
+
+	export type EnvLabel = string & Brand.Brand<'EnvLabel'>;
+	const EnvLabel = Brand.nominal<EnvLabel>();
+	export const envLabel = (name: string): EnvLabel => EnvLabel(name);
+
+	export const EnvLabelSchema = Schema.String.pipe(
+		Schema.fromBrand('EnvLabel', EnvLabel)
+	);
+
+	export const Var = Schema.Struct({
+		id: VarIdSchema,
+		label: EnvLabelSchema,
+		source: Source,
+	});
+	export type Var = typeof Var.Type;
+
 	export const Entry = Schema.Struct({
-		/** For example, "CLOUDFLARE_API_TOKEN". */
-		env: Schema.String,
 		expiresOn: Schema.optional(Schema.String),
 		issuedOn: Schema.optional(Schema.String),
 		permissions: Schema.optional(Schema.Array(Schema.String)),
-		/** For example, "cloudflare". */
 		provider: Schema.optional(Schema.String),
-		source: Source,
 		tokenId: Schema.optional(Schema.String),
+		vars: Schema.Array(Var),
 	});
 	export type Entry = typeof Entry.Type;
 
@@ -79,28 +95,48 @@ export namespace DotfileSecret {
 			);
 		});
 
-	/** Replace the entry with the same `env`, otherwise append. */
+	export const existingLabels = () =>
+		read.pipe(
+			Effect.map(
+				(manifest) =>
+					new Set(
+						manifest.secrets.flatMap((entry) =>
+							entry.vars.map((variable) => variable.label)
+						)
+					)
+			)
+		);
+
+	/** Replace any bundle that shares a label with the new entry, otherwise append. */
 	export const upsert = (entry: Entry) =>
 		Effect.gen(function* () {
 			const current = yield* read;
+			const labels = new Set(
+				entry.vars.map((variable) => variable.label)
+			);
 			const secrets = [
 				...current.secrets.filter(
-					(existing) => existing.env !== entry.env
+					(existing) =>
+						!existing.vars.some((variable) =>
+							labels.has(variable.label)
+						)
 				),
 				entry,
 			];
 			yield* write({ secrets, version: 1 });
 		});
 
-	/** Remove an env entry from the manifest, returning the removed entry if found. */
-	export const remove = (env: string) =>
+	/** Remove the bundle containing `label`, returning it if found. */
+	export const removeByLabel = (label: EnvLabel) =>
 		Effect.gen(function* () {
 			const current = yield* read;
-			const removed = current.secrets.find((entry) => entry.env === env);
+			const removed = current.secrets.find((entry) =>
+				entry.vars.some((variable) => variable.label === label)
+			);
 			if (!removed) return;
 
 			yield* write({
-				secrets: current.secrets.filter((entry) => entry.env !== env),
+				secrets: current.secrets.filter((entry) => entry !== removed),
 				version: 1,
 			});
 			return removed;

@@ -6,10 +6,9 @@ import type { Provider as ProviderName } from './index';
 export interface Token {
 	readonly id: string;
 	readonly name: string;
-	readonly value?: string;
+	readonly values: readonly string[];
 	readonly issuedOn?: string;
 	readonly expiresOn?: string;
-	readonly notBefore?: string;
 }
 
 /**
@@ -70,5 +69,6 @@ export type ProviderError =
 	| ProviderResponseError;
 
 export interface Provider {
+	readonly defaultLabels: readonly string[];
 	readonly mint: () => Effect.Effect<Token, ProviderError>;
 }

@@ -7,11 +7,7 @@ import { ProviderRequestError } from '../provider';
 
 const PROVIDER = 'cloudflare';
 
-/**
- * Canonical `<service>:<access>` keys → Cloudflare permission group names.
- * This is the curated layer; anything not covered here can still be granted
- * verbatim through a `raw:` permission.
- */
+/** Canonical `<service>:<access>` keys → Cloudflare permission group names. */
 const CAPABILITIES: Record<string, readonly string[]> = {
 	'dns:edit': ['DNS Write'],
 	'dns:read': ['DNS Read'],
@@ -23,7 +19,7 @@ const CAPABILITIES: Record<string, readonly string[]> = {
 
 /** A single Cloudflare access policy, ready to pass to `User.createToken`. */
 export interface CloudflarePolicy {
-	effect: 'allow' | 'deny';
+	effect: 'allow';
 	permissionGroups: { id: string }[];
 	resources: Record<string, string>;
 }
@@ -70,14 +66,12 @@ const loadZoneIds = (names: ReadonlySet<string>) =>
 const permissionNamesFor = (
 	grant: Grant
 ): Effect.Effect<readonly string[], ProviderRequestError> => {
-	if (grant.kind === 'raw') return Effect.succeed([grant.id]);
-
 	const key = `${grant.service}:${grant.access}`;
 	const names = CAPABILITIES[key];
 	return names
 		? Effect.succeed(names)
 		: new ProviderRequestError({
-				message: `Cloudflare has no mapping for "${key}". Pass the permission group directly with "raw:<name>".`,
+				message: `Cloudflare has no mapping for "${key}".`,
 				provider: PROVIDER,
 			});
 };
@@ -118,10 +112,9 @@ const resourcesFor = (
 	}
 };
 
-/** Collapse resolved grants into one policy per (effect, resource) pair. */
+/** Collapse resolved grants into one policy per resource set. */
 const mergePolicies = (
 	entries: readonly {
-		readonly effect: 'allow' | 'deny';
 		readonly permissionGroups: readonly { readonly id: string }[];
 		readonly resources: Record<string, string>;
 	}[]
@@ -129,9 +122,9 @@ const mergePolicies = (
 	const byKey = new Map<string, CloudflarePolicy & { seen: Set<string> }>();
 
 	for (const entry of entries) {
-		const key = `${entry.effect}|${Object.keys(entry.resources).toSorted().join(',')}`;
+		const key = Object.keys(entry.resources).toSorted().join(',');
 		const policy = byKey.get(key) ?? {
-			effect: entry.effect,
+			effect: 'allow' as const,
 			permissionGroups: [],
 			resources: entry.resources,
 			seen: new Set<string>(),
@@ -156,8 +149,8 @@ const mergePolicies = (
 
 /**
  * Translate provider-agnostic grants into Cloudflare access policies. Permission
- * groups and zones are resolved against the live account; grants sharing an
- * effect and resource set are merged into a single policy.
+ * groups and zones are resolved against the live account; grants sharing a
+ * resource set are merged into a single policy.
  */
 export const translateGrants = (grants: readonly Grant[], accountId: string) =>
 	Effect.gen(function* () {
@@ -166,9 +159,7 @@ export const translateGrants = (grants: readonly Grant[], accountId: string) =>
 
 		const zoneNames = new Set(
 			grants.flatMap((grant) =>
-				grant.kind === 'canonical' &&
-				grant.scope.type === 'zone' &&
-				grant.scope.id
+				grant.scope.type === 'zone' && grant.scope.id
 					? [grant.scope.id]
 					: []
 			)
@@ -193,20 +184,12 @@ export const translateGrants = (grants: readonly Grant[], accountId: string) =>
 									});
 						})
 					);
-					const scope: Scope =
-						grant.kind === 'canonical'
-							? grant.scope
-							: { type: 'account' };
 					const resources = yield* resourcesFor(
-						scope,
+						grant.scope,
 						accountResource,
 						zoneIds
 					);
-					return {
-						effect: grant.effect,
-						permissionGroups,
-						resources,
-					};
+					return { permissionGroups, resources };
 				})
 			),
 			{ concurrency: 'unbounded' }

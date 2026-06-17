@@ -1,19 +1,22 @@
 import { parseGrant } from '@hem/provider';
-import { cloudflare } from '@hem/provider/cloudflare';
-import { Console, Effect, Option } from 'effect';
+import { Console, Effect } from 'effect';
 import { Argument, Command, Flag } from 'effect/unstable/cli';
 
 import { DotfileSecret } from '../dotfile/secret';
+import {
+	getProviderConfig,
+	mintFromProvider,
+	providerChoices,
+} from '../provider/registry';
 import { BunSecret } from '../secret/bun';
 import { EnvSecret } from '../secret/env';
-import { ProviderSecret } from '../secret/provider';
 import { HemError } from '../util/error';
 
 const envNamePattern = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 
-const validateEnvName = (name: string) =>
+const validateEnvLabel = (name: string) =>
 	envNamePattern.test(name)
-		? Effect.succeed(name)
+		? Effect.succeed(DotfileSecret.envLabel(name))
 		: Effect.fail(
 				new HemError({
 					message:
@@ -21,72 +24,31 @@ const validateEnvName = (name: string) =>
 				})
 			);
 
-const resolveCloudflareConnection = Effect.gen(function* () {
-	const [managementToken, accountId] = yield* Effect.all(
-		[
-			BunSecret.get({
-				name: ProviderSecret.name({
-					key: 'management-token',
-					provider: 'cloudflare',
-				}),
-				service: ProviderSecret.service,
-			}),
-			BunSecret.get({
-				name: ProviderSecret.name({
-					key: 'account-id',
-					provider: 'cloudflare',
-				}),
-				service: ProviderSecret.service,
-			}),
-		],
-		{ concurrency: 'unbounded' }
-	);
-
-	if (!managementToken || !accountId) {
-		return yield* new HemError({
-			message:
-				'Cloudflare is not connected. Run `hem connect cloudflare` first.',
-		});
-	}
-
-	return { accountId, managementToken } as const;
-});
-
 const add = Command.make(
 	'add',
 	{
-		envName: Argument.string('name').pipe(
-			Argument.withDescription('Environment variable name')
-		),
-		expiresOn: Flag.string('expires-on').pipe(
-			Flag.withDescription('Token expiration as an ISO timestamp'),
-			Flag.optional
-		),
-		from: Flag.choice('from', ['cloudflare']).pipe(
+		from: Flag.choice('from', providerChoices).pipe(
 			Flag.withDescription('Provider to mint the env value from')
-		),
-		notBefore: Flag.string('not-before').pipe(
-			Flag.withDescription('Token not-before time as an ISO timestamp'),
-			Flag.optional
 		),
 		permission: Flag.string('permission').pipe(
 			Flag.withDescription(
-				'Permission to grant, e.g. "r2:write", "dns:edit@zone/example.com", or "raw:<group>"; can be repeated'
+				'Permission to grant, e.g. "r2:write" or "s3:read@bucket/uploads"; can be repeated'
 			),
 			Flag.atLeast(1)
 		),
-		tokenName: Flag.string('name').pipe(
-			Flag.withDescription('Provider token name'),
-			Flag.optional
-		),
 	},
-	({ envName, expiresOn, from, notBefore, permission, tokenName }) =>
+	({ from, permission }) =>
 		Effect.gen(function* () {
-			const name = yield* validateEnvName(envName);
-			if (from !== 'cloudflare') {
-				return yield* new HemError({
-					message: `Unsupported provider "${from}".`,
-				});
+			const config = getProviderConfig(from);
+			const labels = config.defaultLabels.map(DotfileSecret.envLabel);
+			const existing = yield* DotfileSecret.existingLabels();
+
+			for (const envLabel of labels) {
+				if (existing.has(envLabel)) {
+					return yield* new HemError({
+						message: `Env var "${envLabel}" is already managed. Run \`hem env rm ${envLabel}\` first.`,
+					});
+				}
 			}
 
 			const grants = yield* Effect.all(permission.map(parseGrant)).pipe(
@@ -95,53 +57,71 @@ const add = Command.make(
 				)
 			);
 
-			const connection = yield* resolveCloudflareConnection;
+			const issued = yield* mintFromProvider(from, {
+				grants,
+				permissions: [...permission],
+			});
 
-			const issued = yield* cloudflare({
-				accountId: connection.accountId,
-				body: {
-					expiresOn: Option.getOrUndefined(expiresOn),
-					grants,
-					name: Option.getOrElse(tokenName, () => `hem:${name}`),
-					notBefore: Option.getOrUndefined(notBefore),
-				},
-				managementToken: connection.managementToken,
-			}).mint();
-
-			if (!issued.value) {
+			if (issued.values.length !== labels.length) {
 				return yield* new HemError({
-					message: 'Cloudflare did not return a token value.',
+					message: `${config.displayName} returned ${issued.values.length} credential values but ${labels.length} labels were expected.`,
 				});
 			}
 
-			const source: DotfileSecret.Source = {
-				name: EnvSecret.name({
-					env: name,
-					provider: 'cloudflare',
-				}),
-				service: EnvSecret.service,
-				type: 'keychain',
-			};
+			const vars = yield* Effect.all(
+				labels.map((envLabel, index) =>
+					Effect.gen(function* () {
+						const value = issued.values[index];
+						if (!value) {
+							return yield* new HemError({
+								message: `${config.displayName} did not return a value for "${envLabel}".`,
+							});
+						}
 
-			yield* BunSecret.set({
-				name: source.name,
-				service: source.service,
-				value: issued.value,
-			});
+						const source: DotfileSecret.Source = {
+							name: EnvSecret.name({
+								env: envLabel,
+								provider: from,
+							}),
+							service: EnvSecret.service,
+							type: 'keychain',
+						};
+
+						yield* BunSecret.set({
+							name: source.name,
+							service: source.service,
+							value,
+						});
+
+						return {
+							id: DotfileSecret.newVarId(),
+							label: envLabel,
+							source,
+						} satisfies DotfileSecret.Var;
+					})
+				),
+				{ concurrency: 'unbounded' }
+			);
 
 			yield* DotfileSecret.upsert({
-				env: name,
 				expiresOn: issued.expiresOn,
 				issuedOn: issued.issuedOn,
 				permissions: [...permission],
-				provider: 'cloudflare',
-				source,
+				provider: from,
 				tokenId: issued.id,
+				vars,
 			});
 
-			yield* Console.log(`✓ Added ${name} from Cloudflare`);
+			yield* Console.log(
+				`✓ Added ${vars.length} variable${vars.length === 1 ? '' : 's'} from ${config.displayName}`
+			);
+			for (const variable of vars) {
+				yield* Console.log(
+					`  ${variable.label.padEnd(24)} ${variable.id}`
+				);
+			}
 		})
-).pipe(Command.withDescription('Mint and store a provider-backed env var'));
+).pipe(Command.withDescription('Mint and store provider-backed env vars'));
 
 const list = Command.make('list', {}, () =>
 	DotfileSecret.read.pipe(
@@ -151,17 +131,21 @@ const list = Command.make('list', {}, () =>
 					return yield* Console.log('No env vars added.');
 
 				const headers = [
-					'ENV',
+					'LABEL',
+					'ID',
 					'FROM',
 					'PERMISSIONS',
 					'EXPIRES',
 				] as const;
-				const rows = manifest.secrets.map((entry) => [
-					entry.env,
-					entry.provider ?? '-',
-					entry.permissions?.join(',') ?? '-',
-					entry.expiresOn ?? '-',
-				]);
+				const rows = manifest.secrets.flatMap((entry) =>
+					entry.vars.map((variable) => [
+						variable.label,
+						variable.id,
+						entry.provider ?? '-',
+						entry.permissions?.join(',') ?? '-',
+						entry.expiresOn ?? '-',
+					])
+				);
 				const widths = headers.map((header, index) =>
 					Math.max(
 						header.length,
@@ -189,13 +173,13 @@ const rm = Command.make(
 	'rm',
 	{
 		envName: Argument.string('name').pipe(
-			Argument.withDescription('Environment variable name')
+			Argument.withDescription('Any label from the credential bundle')
 		),
 	},
 	({ envName }) =>
 		Effect.gen(function* () {
-			const name = yield* validateEnvName(envName);
-			const removed = yield* DotfileSecret.remove(name);
+			const name = yield* validateEnvLabel(envName);
+			const removed = yield* DotfileSecret.removeByLabel(name);
 
 			if (!removed) {
 				return yield* Console.log(
@@ -203,12 +187,20 @@ const rm = Command.make(
 				);
 			}
 
-			yield* BunSecret.remove({
-				name: removed.source.name,
-				service: removed.source.service,
-			});
+			yield* Effect.all(
+				removed.vars.map((variable) =>
+					BunSecret.remove({
+						name: variable.source.name,
+						service: variable.source.service,
+					})
+				),
+				{ concurrency: 'unbounded' }
+			);
 
-			yield* Console.log(`✓ Removed ${name}.`);
+			const labels = removed.vars.map((variable) => variable.label);
+			yield* Console.log(
+				`✓ Removed ${labels.length} variable${labels.length === 1 ? '' : 's'}: ${labels.join(', ')}.`
+			);
 		})
 ).pipe(Command.withDescription('Remove a locally added env var'));
 

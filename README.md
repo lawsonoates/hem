@@ -2,18 +2,26 @@
 
 A CLI for agents to create, manage and use secrets. Encrypts secrets locally while giving agents discoverability and metadata on secrets. Works alongside existing `.env`.
 
-Currently only supports cloudflare.
+Supports Cloudflare and AWS.
 
 ## Usage
 
-1. Connect and add token
+1. Connect and add credentials
 
 ```bash
+# Cloudflare
 hem connect cloudflare
 
-hem env add R2_TOKEN \
+hem env add \
   --from cloudflare \
   --permission "r2:write"
+
+# AWS
+hem connect aws
+
+hem env add \
+  --from aws \
+  --permission "s3:read@bucket/uploads"
 ```
 
 2. Use `hem` to run with secrets
@@ -22,21 +30,38 @@ hem env add R2_TOKEN \
 hem bun dev
 ```
 
+## Env var labels
+
+Each provider mints credentials under fixed env var names:
+
+| Provider   | Labels                                                            |
+| ---------- | ----------------------------------------------------------------- |
+| cloudflare | `CLOUDFLARE_API_TOKEN`                                            |
+| aws        | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` |
+
+Only one bundle per provider can be active at a time. `hem env rm <label>`
+removes the whole bundle that contains that label.
+
 ## Permissions
 
-`--permission` takes a provider-agnostic grant and can be repeated:
+`--permission` uses a uniform grant syntax. The vocabulary is
+**provider-specific** — `r2:*` on Cloudflare, `s3:*` on AWS — but the grammar
+is the same:
 
 ```
-[allow|deny] <service>:<access>[@<scope-type>/<id>]
+<service>:<access>[@<scope-type>/<id>]
 ```
 
 ```bash
+# Cloudflare
 --permission "r2:write"                     # whole account
 --permission "r2:read@bucket/uploads"       # scoped to one R2 bucket
 --permission "dns:edit@zone/example.com"    # scoped to one zone
---permission "deny r2:write"                # explicit deny
---permission "raw:Workers R2 Storage Write" # Cloudflare permission group, verbatim
+
+# AWS
+--permission "s3:read@bucket/uploads"       # scoped to one S3 bucket
+--permission "dynamodb:read@table/my-table" # scoped to one DynamoDB table
 ```
 
-`<service>:<access>` maps to each provider's native permissions; `raw:` passes a
-provider permission through untranslated for anything not yet mapped.
+Token lifetime is whatever the provider API returns. Region is set at
+`hem connect aws` time.

@@ -4,18 +4,18 @@ import { DotfileSecret } from '../dotfile/secret';
 import { BunSecret } from '../secret/bun';
 import { HemError } from '../util/error';
 
-const resolveSecret = (entry: DotfileSecret.Entry) =>
+const resolveVar = (entry: DotfileSecret.Entry, variable: DotfileSecret.Var) =>
 	Effect.gen(function* () {
 		const value = yield* BunSecret.get({
-			name: entry.source.name,
-			service: entry.source.service,
+			name: variable.source.name,
+			service: variable.source.service,
 		});
 
 		if (!value) {
 			return yield* new HemError({
-				message: `No value for "${entry.env}" in the system keychain.${
-					entry.provider === 'cloudflare'
-						? ` Run \`hem env add ${entry.env} --from cloudflare --permission <permission>\` first.`
+				message: `No value for "${variable.label}" in the system keychain.${
+					entry.provider
+						? ` Run \`hem env add --from ${entry.provider} --permission <permission>\` first.`
 						: ''
 				}`,
 			});
@@ -23,11 +23,11 @@ const resolveSecret = (entry: DotfileSecret.Entry) =>
 
 		if (entry.expiresOn && Date.parse(entry.expiresOn) < Date.now()) {
 			yield* Console.warn(
-				`! "${entry.env}" expired on ${entry.expiresOn}. Re-mint it before relying on this run.`
+				`! "${variable.label}" expired on ${entry.expiresOn}. Re-mint it before relying on this run.`
 			);
 		}
 
-		return [entry.env, value] as const;
+		return [variable.label, value] as const;
 	});
 
 const spawnCommand = (input: {
@@ -67,7 +67,9 @@ export const runCommandWithInjectedSecrets = (args: readonly string[]) =>
 	Effect.gen(function* () {
 		const manifest = yield* DotfileSecret.read;
 		const manifestEnv = yield* Effect.all(
-			manifest.secrets.map(resolveSecret),
+			manifest.secrets.flatMap((entry) =>
+				entry.vars.map((variable) => resolveVar(entry, variable))
+			),
 			{
 				concurrency: 'unbounded',
 			}

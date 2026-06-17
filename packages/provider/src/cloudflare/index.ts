@@ -18,28 +18,27 @@ export interface CloudflareInput {
 	readonly accountId: string;
 	readonly managementToken: string;
 	readonly body: {
-		readonly name: string;
 		readonly grants: readonly Grant[];
-		readonly expiresOn?: string;
-		readonly notBefore?: string;
 	};
 }
 
 const PROVIDER = 'cloudflare';
 
+export const DEFAULT_LABELS = ['CLOUDFLARE_API_TOKEN'] as const;
+
 const toToken = (result: User.CreateTokenResponse): Token | null => {
-	if (!result.id || !result.name) return null;
+	if (!result.id || !result.name || !result.value) return null;
 	return {
 		expiresOn: result.expiresOn ?? undefined,
 		id: result.id,
 		issuedOn: result.issuedOn ?? undefined,
 		name: result.name,
-		notBefore: result.notBefore ?? undefined,
-		value: result.value ?? undefined,
+		values: [result.value],
 	};
 };
 
 export const cloudflare = (input: CloudflareInput): Provider => ({
+	defaultLabels: DEFAULT_LABELS,
 	mint: () =>
 		Effect.gen(function* () {
 			const policies = yield* translateGrants(
@@ -48,9 +47,7 @@ export const cloudflare = (input: CloudflareInput): Provider => ({
 			);
 
 			const result = yield* User.createToken({
-				expiresOn: input.body.expiresOn,
-				name: input.body.name,
-				notBefore: input.body.notBefore,
+				name: 'hem:cloudflare',
 				policies,
 			});
 

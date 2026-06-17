@@ -5,12 +5,14 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./aws": "./src/aws/index.ts",
 		"./cloudflare": "./src/cloudflare/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsgo -b --noEmit"
 	},
 	"dependencies": {
+		"@distilled.cloud/aws": "0.24.8",
 		"@distilled.cloud/cloudflare": "0.24.8",
 		"effect": "catalog:"
 	},

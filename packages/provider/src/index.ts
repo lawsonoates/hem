@@ -1,12 +1,4 @@
-export {
-	type CanonicalGrant,
-	type Grant,
-	type GrantEffect,
-	GrantParseError,
-	parseGrant,
-	type RawGrant,
-	type Scope,
-} from './grant';
+export { type Grant, GrantParseError, parseGrant, type Scope } from './grant';
 
-export const providers = ['cloudflare'] as const;
+export const providers = ['cloudflare', 'aws'] as const;
 export type Provider = (typeof providers)[number];
