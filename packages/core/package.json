@@ -1,0 +1,23 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@hem/core",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./error": "./src/error.ts",
+		"./global": "./src/global.ts",
+		"./manifest/schema": "./src/manifest/schema.ts"
+	},
+	"scripts": {
+		"typecheck": "tsgo -b --noEmit"
+	},
+	"dependencies": {
+		"effect": "catalog:"
+	},
+	"devDependencies": {
+		"@tsconfig/bun": "catalog:",
+		"@types/bun": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

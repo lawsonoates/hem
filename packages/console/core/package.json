@@ -1,0 +1,32 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@hem/console-core",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./binding": "./src/binding.ts",
+		"./database/database": "./src/database/database.ts",
+		"./installation": "./src/installation.ts",
+		"./database/schema/auth": "./src/database/schema/auth.sql.ts",
+		"./database/schema/binding": "./src/database/schema/binding.sql.ts",
+		"./database/schema/installation": "./src/database/schema/installation.sql.ts"
+	},
+	"scripts": {
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio",
+		"typecheck": "tsgo -b --noEmit"
+	},
+	"dependencies": {
+		"drizzle-orm": "catalog:",
+		"effect": "catalog:",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@tsconfig/bun": "catalog:",
+		"@types/bun": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"drizzle-kit": "^0.31.8",
+		"typescript": "catalog:"
+	}
+}

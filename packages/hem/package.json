@@ -1,0 +1,27 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@hem/hem",
+	"private": true,
+	"bin": {
+		"hem": "./dist/index.js"
+	},
+	"type": "module",
+	"scripts": {
+		"build": "bun build src/index.ts --outdir dist --target bun",
+		"dev": "bun run src/index.ts",
+		"typecheck": "tsgo -b --noEmit"
+	},
+	"dependencies": {
+		"@effect/platform-bun": "catalog:",
+		"@hem/console-api": "workspace:*",
+		"@hem/core": "workspace:*",
+		"effect": "catalog:",
+		"open": "^11.0.0"
+	},
+	"devDependencies": {
+		"@tsconfig/bun": "catalog:",
+		"@types/bun": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"typescript": "catalog:"
+	}
+}

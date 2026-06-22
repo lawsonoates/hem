@@ -1,0 +1,35 @@
+{
+	"$schema": "https://json.schemastore.org/package.json",
+	"name": "@hem/console-api",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./api": "./src/api.ts",
+		"./effect/app-runtime": "./src/effect/app-runtime.ts",
+		"./middleware/auth": "./src/middleware/auth.ts",
+		"./schema": "./src/schema.ts"
+	},
+	"scripts": {
+		"auth:generate": "bun script/auth-generate.ts",
+		"deploy": "bun script/deploy.ts",
+		"dev": "bun --watch src/server.ts",
+		"dev:public": "NODE_ENV=development bun run script/dev-public.ts",
+		"start": "bun src/server.ts",
+		"typecheck": "tsgo -b --noEmit"
+	},
+	"dependencies": {
+		"@effect/platform-bun": "catalog:",
+
+		"@hem/console-core": "workspace:*",
+		"better-auth": "^1.6.11",
+		"drizzle-orm": "catalog:",
+		"effect": "catalog:"
+	},
+	"devDependencies": {
+		"@tsconfig/bun": "catalog:",
+		"@types/bun": "catalog:",
+		"@typescript/native-preview": "catalog:",
+		"auth": "^1.6.11",
+		"typescript": "catalog:"
+	}
+}
