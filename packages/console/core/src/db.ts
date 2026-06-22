@@ -4,9 +4,9 @@ import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { Config, Context, Data, Effect, Layer } from 'effect';
 
-import * as authSchema from './schema/auth.sql';
-import * as bindingSchema from './schema/binding.sql';
-import * as installationSchema from './schema/installation.sql';
+import * as authSchema from './database/schema/auth.sql';
+import * as bindingSchema from './database/schema/binding.sql';
+import * as installationSchema from './database/schema/installation.sql';
 
 const schema = {
 	...authSchema,
