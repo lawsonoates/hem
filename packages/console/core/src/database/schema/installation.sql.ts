@@ -1,27 +1,46 @@
+import type { ManagedConnector } from '@hem/core/connector';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { user } from './auth.sql';
 import { id, timestamps } from './utils';
 
-export interface GithubAccount {
+export type { ManagedConnector } from '@hem/core/connector';
+
+export interface ProviderAccount {
 	readonly id: string;
 	readonly name: string;
-	readonly type: 'user' | 'organization';
+	readonly type: string;
 }
 
-export type GithubPermissions = Readonly<Record<string, string>>;
+export type ConnectorPermissions = Readonly<Record<string, string>>;
+
+export interface ProviderCredentials {
+	readonly accessToken: string;
+	readonly expiresAt?: string | null;
+	readonly refreshToken?: string | null;
+	readonly scope?: string | null;
+	readonly teamId?: string | null;
+	readonly tokenType?: string | null;
+}
 
 export const InstallationTable = sqliteTable(
 	'installation',
 	{
 		account: text('account', { mode: 'json' })
-			.$type<GithubAccount>()
+			.$type<ProviderAccount>()
 			.notNull(),
-		connector: text('connector', { enum: ['github'] }).notNull(),
+		connector: text('connector', {
+			enum: ['github', 'notion', 'planetscale', 'slack', 'vercel'],
+		})
+			.$type<ManagedConnector>()
+			.notNull(),
+		credentials: text('credentials', {
+			mode: 'json',
+		}).$type<ProviderCredentials | null>(),
 		grantedPermissions: text('granted_permissions', {
 			mode: 'json',
 		})
-			.$type<GithubPermissions>()
+			.$type<ConnectorPermissions>()
 			.notNull(),
 		id: id('ins'),
 		ownerId: text('owner_id')

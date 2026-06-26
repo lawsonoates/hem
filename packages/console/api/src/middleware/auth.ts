@@ -1,9 +1,6 @@
 import { Context, Effect, Layer } from 'effect';
 import { HttpServerRequest } from 'effect/unstable/http';
-import {
-	HttpApiMiddleware,
-	HttpApiSecurity,
-} from 'effect/unstable/httpapi';
+import { HttpApiMiddleware, HttpApiSecurity } from 'effect/unstable/httpapi';
 
 import { HemAuth } from '../auth';
 import { Unauthorized } from '../errors';

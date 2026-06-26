@@ -18,6 +18,7 @@
 		"typecheck": "tsgo -b --noEmit"
 	},
 	"dependencies": {
+		"@hem/core": "workspace:*",
 		"drizzle-orm": "catalog:",
 		"effect": "catalog:",
 		"zod": "^4.4.3"

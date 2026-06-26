@@ -4,6 +4,7 @@ import { Effect } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
+import { ConnectorRegistry } from '../connectors/registry';
 import { Forbidden, NotFound } from '../errors';
 import { CurrentUser } from '../middleware/auth';
 import { Binding, BindingId, InstallationId } from '../schema';
@@ -24,12 +25,18 @@ export const createBinding = (ownerId: string, request: CreateBindingRequest) =>
 				message: 'Installation belongs to another user.',
 			});
 		}
+		const registry = yield* ConnectorRegistry.Service;
+		const connector = yield* registry
+			.get(installation.connector)
+			.pipe(Effect.orDie);
 		const binding = yield* BindingCore.create({
 			installationId: installation.id,
 		}).pipe(Effect.orDie);
 		return new Binding({
+			connector: installation.connector,
 			id: BindingId.make(binding.id),
 			installationId: InstallationId.make(binding.installationId),
+			outputs: connector.outputsForInstallation(installation.account),
 		});
 	});
 

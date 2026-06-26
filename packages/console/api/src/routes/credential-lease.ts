@@ -1,10 +1,10 @@
-import { GithubConnector } from '../github';
 import { Binding as BindingCore } from '@hem/console-core/binding';
 import { Installation as InstallationCore } from '@hem/console-core/installation';
 import { Effect } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
+import { ConnectorRegistry } from '../connectors/registry';
 import { Forbidden, NotFound, ProviderUnavailable } from '../errors';
 import { CurrentUser } from '../middleware/auth';
 import { CredentialLease } from '../schema';
@@ -18,9 +18,11 @@ export const createCredentialLease = (
 		const binding = yield* BindingCore.fromId(request.bindingId).pipe(
 			Effect.orDie
 		);
-		if (!binding)
-			return yield* new NotFound({ message: 'Binding was not found.' });
-
+		if (!binding) {
+			return yield* new NotFound({
+				message: 'Binding was not found.',
+			});
+		}
 		const installation = yield* InstallationCore.fromId(
 			binding.installationId
 		).pipe(Effect.orDie);
@@ -34,23 +36,34 @@ export const createCredentialLease = (
 				message: 'Binding belongs to another user.',
 			});
 		}
-		const github = yield* GithubConnector.Service;
-		const credential = yield* github
+		const registry = yield* ConnectorRegistry.Service;
+		const connector = yield* registry.get(installation.connector);
+		const credential = yield* connector
 			.issueCredential({
+				credentials: installation.credentials ?? null,
+				grantedPermissions: installation.grantedPermissions,
 				providerInstallationId: installation.providerInstallationId,
 			})
 			.pipe(
 				Effect.mapError(
-					() =>
+					(error) =>
 						new ProviderUnavailable({
-							message:
-								'GitHub could not issue an installation token.',
+							message: error.message,
 						})
 				)
 			);
+		if (credential.credentials) {
+			yield* InstallationCore.updateCredentials({
+				credentials: credential.credentials,
+				grantedPermissions:
+					credential.grantedPermissions ??
+					installation.grantedPermissions,
+				id: installation.id,
+			}).pipe(Effect.orDie);
+		}
 		return new CredentialLease({
 			expiresAt: credential.expiresAt,
-			values: { GITHUB_TOKEN: credential.token },
+			values: credential.values,
 		});
 	});
 

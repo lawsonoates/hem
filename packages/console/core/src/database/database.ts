@@ -10,7 +10,7 @@ import * as bindingSchema from './schema/binding.sql';
 import * as installationSchema from './schema/installation.sql';
 
 const migrationsFolder = decodeURIComponent(
-	new URL('./migrations', import.meta.url).pathname
+	new URL('migrations', import.meta.url).pathname
 );
 
 const schema = {

@@ -1,16 +1,16 @@
-import { GithubConnector } from '../github';
 import { Database } from '@hem/console-core/database/database';
-import { Effect, Layer, ManagedRuntime } from 'effect';
+import { Layer, ManagedRuntime } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
 import { HemAuth } from '../auth';
+import { ConnectorRegistry } from '../connectors/registry';
 import { AuthorizationLive } from '../middleware/auth';
 import { HandlersLive } from '../routes';
 
 export const ServicesLayer = Layer.mergeAll(
 	Database.defaultLayer,
-	GithubConnector.defaultLayer,
+	ConnectorRegistry.defaultLayer,
 	HemAuth.defaultLayer
 );
 
@@ -31,7 +31,9 @@ type Runtime = Pick<
 	'runPromise' | 'runPromiseExit' | 'runFork' | 'dispose'
 >;
 
-export type AppServices = ManagedRuntime.ManagedRuntime.Services<typeof runtime>;
+export type AppServices = ManagedRuntime.ManagedRuntime.Services<
+	typeof runtime
+>;
 
 export const makeRuntime = <R, E>(layer: Layer.Layer<R, E>) => {
 	const rt = ManagedRuntime.make(layer);

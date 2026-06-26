@@ -1,50 +1,75 @@
 import { expect, test } from 'bun:test';
 
-import { GithubConnector } from '../src/github';
 import { Database } from '@hem/console-core/database/database';
 import { user } from '@hem/console-core/database/schema/auth';
 import { Effect, Layer } from 'effect';
 
+import { ConnectorRegistry } from '../src/connectors/registry';
+import { ConnectorError } from '../src/connectors/types';
 import { makeRuntime } from '../src/effect/app-runtime';
+import {
+	completeConnectorInstallation,
+	getConnectorInstallationStatus,
+	startConnectorInstallation,
+} from '../src/installation/flow';
 import { createBinding } from '../src/routes/binding';
 import { createCredentialLease } from '../src/routes/credential-lease';
-import {
-	completeGithubInstallation,
-	getGithubInstallationStatus,
-	startGithubInstallation,
-} from '../src/routes/installation';
 import {
 	CreateBindingRequest,
 	CreateCredentialLeaseRequest,
 	HemUserId,
 } from '../src/schema';
 
-const GithubConnectorTest = Layer.succeed(
-	GithubConnector.Service,
-	GithubConnector.Service.of({
-		completeInstallation: (providerInstallationId) =>
-			Effect.succeed({
-				account: {
-					id: '42',
-					name: 'acme',
-					type: 'organization',
-				},
-				grantedPermissions: { contents: 'write', issues: 'read' },
-				providerInstallationId,
-			}),
-		createInstallationUrl: (state) =>
-			`https://github.test/install?state=${state}`,
-		issueCredential: ({ providerInstallationId }) =>
-			Effect.succeed({
-				expiresAt: '2026-06-18T01:00:00.000Z',
-				token: `ghs_${providerInstallationId}`,
-			}),
+const ConnectorRegistryTest = Layer.succeed(
+	ConnectorRegistry.Service,
+	ConnectorRegistry.Service.of({
+		get: (connector) =>
+			connector === 'github'
+				? Effect.succeed({
+						completeAuthorization: ({ callback }) =>
+							callback._tag === 'github'
+								? Effect.succeed({
+										account: {
+											id: '42',
+											name: 'acme',
+											type: 'organization',
+										},
+										credentials: null,
+										grantedPermissions: {
+											contents: 'write',
+											issues: 'read',
+										},
+										providerInstallationId:
+											callback.providerInstallationId,
+									})
+								: Effect.fail(
+										new ConnectorError({
+											connector: 'github',
+											message:
+												'Expected GitHub callback.',
+										})
+									),
+						connector: 'github' as const,
+						createAuthorizationUrl: (state) =>
+							Effect.succeed(
+								`https://github.test/install?state=${state}`
+							),
+						issueCredential: ({ providerInstallationId }) =>
+							Effect.succeed({
+								expiresAt: '2026-06-18T01:00:00.000Z',
+								values: {
+									GITHUB_TOKEN: `ghs_${providerInstallationId}`,
+								},
+							}),
+						outputsForInstallation: () => ['GITHUB_TOKEN'] as const,
+					})
+				: Effect.die(`Unexpected connector: ${connector}`),
 	})
 );
 
 const TestLayer = Layer.mergeAll(
 	Database.layerFromPath(':memory:'),
-	GithubConnectorTest
+	ConnectorRegistryTest
 );
 
 const testRuntime = makeRuntime(TestLayer);
@@ -66,11 +91,14 @@ test('creates an installation binding and credential lease', async () => {
 				})
 			);
 
-			const authorization = yield* startGithubInstallation(userId);
+			const authorization = yield* startConnectorInstallation(
+				userId,
+				'github'
+			);
 			const state = new URL(
 				authorization.authorizationUrl
 			).searchParams.get('state');
-			const pending = yield* getGithubInstallationStatus(
+			const pending = yield* getConnectorInstallationStatus(
 				userId,
 				authorization.requestId
 			).pipe(
@@ -80,8 +108,14 @@ test('creates an installation binding and credential lease', async () => {
 				)
 			);
 			expect(pending).toBe('pending');
-			yield* completeGithubInstallation('1001', state ?? '');
-			const installation = yield* getGithubInstallationStatus(
+			yield* completeConnectorInstallation('github', {
+				callback: {
+					_tag: 'github',
+					providerInstallationId: '1001',
+				},
+				state: state ?? '',
+			});
+			const installation = yield* getConnectorInstallationStatus(
 				userId,
 				authorization.requestId
 			);
@@ -91,6 +125,7 @@ test('creates an installation binding and credential lease', async () => {
 					installationId: installation.id,
 				})
 			);
+			expect(binding.outputs).toEqual(['GITHUB_TOKEN']);
 			return yield* createCredentialLease(
 				userId,
 				new CreateCredentialLeaseRequest({ bindingId: binding.id })

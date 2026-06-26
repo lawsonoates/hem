@@ -12,7 +12,6 @@ import type {
 import {
 	AuthSession,
 	AuthSuccess,
-	AuthUser,
 	DeviceAccessToken,
 	DeviceAuthorization,
 	DeviceClaim,
@@ -20,10 +19,9 @@ import {
 import {
 	decodeAuthSuccess,
 	forwardAuth,
+	forwardAuthResponse,
 	mapDeviceTokenResponse,
 } from './auth-forward';
-
-const AuthUserResponse = Schema.Struct({ user: AuthUser });
 
 export const startDeviceAuthorization = (
 	payload: StartDeviceAuthorizationRequest
@@ -44,11 +42,7 @@ export const exchangeDeviceToken = (payload: ExchangeDeviceTokenRequest) =>
 			method: 'POST',
 			path: '/v1/auth/device/token',
 		});
-		return yield* mapDeviceTokenResponse(
-			DeviceAccessToken,
-			response,
-			body
-		);
+		return yield* mapDeviceTokenResponse(DeviceAccessToken, response, body);
 	});
 
 export const getDeviceClaim = (userCode: string) =>
@@ -72,23 +66,17 @@ export const approveDevice = (payload: ApproveDeviceRequest) =>
 	});
 
 export const signInEmail = (payload: EmailSignInRequest) =>
-	Effect.gen(function* () {
-		const { body, response } = yield* forwardAuth({
-			body: payload,
-			method: 'POST',
-			path: '/v1/auth/sign-in/email',
-		});
-		return yield* decodeAuthSuccess(AuthUserResponse, response, body);
+	forwardAuthResponse({
+		body: payload,
+		method: 'POST',
+		path: '/v1/auth/sign-in/email',
 	});
 
 export const signUpEmail = (payload: EmailSignUpRequest) =>
-	Effect.gen(function* () {
-		const { body, response } = yield* forwardAuth({
-			body: payload,
-			method: 'POST',
-			path: '/v1/auth/sign-up/email',
-		});
-		return yield* decodeAuthSuccess(AuthUserResponse, response, body);
+	forwardAuthResponse({
+		body: payload,
+		method: 'POST',
+		path: '/v1/auth/sign-up/email',
 	});
 
 export const getSession = () =>
@@ -106,12 +94,9 @@ export const getSession = () =>
 	});
 
 export const signOut = () =>
-	Effect.gen(function* () {
-		const { body, response } = yield* forwardAuth({
-			method: 'POST',
-			path: '/v1/auth/sign-out',
-		});
-		return yield* decodeAuthSuccess(AuthSuccess, response, body);
+	forwardAuthResponse({
+		method: 'POST',
+		path: '/v1/auth/sign-out',
 	});
 
 export const AuthLive = HttpApiBuilder.group(HemApi, 'auth', (handlers) =>

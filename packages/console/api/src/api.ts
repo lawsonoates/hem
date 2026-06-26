@@ -1,3 +1,4 @@
+import { ManagedConnector as ManagedConnectorSchema } from '@hem/core/connector';
 import { Schema } from 'effect';
 import {
 	HttpApi,
@@ -23,6 +24,7 @@ import {
 	AuthSuccess,
 	AuthUser,
 	Binding,
+	ConnectorInstallationAuthorization,
 	CreateBindingRequest,
 	CreateCredentialLeaseRequest,
 	CredentialLease,
@@ -32,7 +34,6 @@ import {
 	EmailSignInRequest,
 	EmailSignUpRequest,
 	ExchangeDeviceTokenRequest,
-	GithubInstallationAuthorization,
 	Installation,
 	StartDeviceAuthorizationRequest,
 } from './schema';
@@ -110,42 +111,46 @@ export class AuthApi extends HttpApiGroup.make('auth').add(
 	signOut
 ) {}
 
-const startGithubInstallation = HttpApiEndpoint.post(
-	'startGithubInstallation',
-	'/connectors/github/installations',
+const startConnectorInstallation = HttpApiEndpoint.post(
+	'startConnectorInstallation',
+	'/connectors/:connector/installations',
 	{
 		error: ProviderUnavailable,
-		success: GithubInstallationAuthorization,
+		params: { connector: ManagedConnectorSchema },
+		success: ConnectorInstallationAuthorization,
 	}
 ).middleware(Authorization);
 
-const completeGithubInstallation = HttpApiEndpoint.get(
-	'completeGithubInstallation',
-	'/connectors/github/callback',
+const completeConnectorInstallation = HttpApiEndpoint.get(
+	'completeConnectorInstallation',
+	'/connectors/:connector/callback',
 	{
 		error: [InvalidInstallationState, ProviderUnavailable],
+		params: { connector: ManagedConnectorSchema },
 		query: {
-			installation_id: Schema.String,
+			code: Schema.optional(Schema.String),
+			installation_id: Schema.optional(Schema.String),
 			state: Schema.String,
 		},
 		success: Installation,
 	}
 );
 
-const getGithubInstallationStatus = HttpApiEndpoint.get(
-	'getGithubInstallationStatus',
-	'/connectors/github/installations/status',
+const getConnectorInstallationStatus = HttpApiEndpoint.get(
+	'getConnectorInstallationStatus',
+	'/connectors/:connector/installations/status',
 	{
 		error: [AuthorizationPending, InvalidAuthorization, NotFound],
+		params: { connector: ManagedConnectorSchema },
 		query: { request_id: Schema.String },
 		success: Installation,
 	}
 ).middleware(Authorization);
 
 export class InstallationsApi extends HttpApiGroup.make('installations').add(
-	startGithubInstallation,
-	completeGithubInstallation,
-	getGithubInstallationStatus
+	startConnectorInstallation,
+	completeConnectorInstallation,
+	getConnectorInstallationStatus
 ) {}
 
 const createBinding = HttpApiEndpoint.post('createBinding', '/bindings', {

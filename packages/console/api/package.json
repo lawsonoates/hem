@@ -14,13 +14,14 @@
 		"deploy": "bun script/deploy.ts",
 		"dev": "bun --watch src/server.ts",
 		"dev:public": "NODE_ENV=development bun run script/dev-public.ts",
+		"seed:dev": "NODE_ENV=development bun script/seed-dev.ts",
 		"start": "bun src/server.ts",
 		"typecheck": "tsgo -b --noEmit"
 	},
 	"dependencies": {
 		"@effect/platform-bun": "catalog:",
-
 		"@hem/console-core": "workspace:*",
+		"@hem/core": "workspace:*",
 		"better-auth": "^1.6.11",
 		"drizzle-orm": "catalog:",
 		"effect": "catalog:"

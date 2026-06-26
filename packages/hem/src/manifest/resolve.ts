@@ -1,7 +1,7 @@
 import { HemError } from '@hem/core/error';
+import type { Entry } from '@hem/core/manifest/schema';
 import { Effect } from 'effect';
 
-import type { Entry } from '@hem/core/manifest/schema';
 import { BunSecret } from '../secret/bun';
 
 export const resolveEntry = (entry: Entry) =>

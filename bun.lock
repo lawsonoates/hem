@@ -21,6 +21,7 @@
       "dependencies": {
         "@effect/platform-bun": "catalog:",
         "@hem/console-core": "workspace:*",
+        "@hem/core": "workspace:*",
         "better-auth": "^1.6.11",
         "drizzle-orm": "catalog:",
         "effect": "catalog:",
@@ -36,6 +37,7 @@
     "packages/console/core": {
       "name": "@hem/console-core",
       "dependencies": {
+        "@hem/core": "workspace:*",
         "drizzle-orm": "catalog:",
         "effect": "catalog:",
         "zod": "^4.4.3",

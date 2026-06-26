@@ -1,3 +1,7 @@
+import {
+	ManagedConnector as ManagedConnectorSchema,
+	OAuthConnector as OAuthConnectorSchema,
+} from '@hem/core/connector';
 import { Schema } from 'effect';
 
 export const HemUserId = Schema.String.pipe(Schema.brand('HemUserId'));
@@ -11,26 +15,34 @@ export type InstallationId = typeof InstallationId.Type;
 export const BindingId = Schema.String.pipe(Schema.brand('BindingId'));
 export type BindingId = typeof BindingId.Type;
 
-export class GithubAccount extends Schema.Class<GithubAccount>(
-	'@hem/console-api/GithubAccount'
+export const Connector = ManagedConnectorSchema;
+export type Connector = typeof Connector.Type;
+
+export const OAuthConnector = OAuthConnectorSchema;
+export type OAuthConnector = typeof OAuthConnector.Type;
+
+export class ProviderAccount extends Schema.Class<ProviderAccount>(
+	'@hem/console-api/ProviderAccount'
 )({
 	id: Schema.String,
 	name: Schema.String,
-	type: Schema.Literals(['user', 'organization']),
+	type: Schema.String,
 }) {}
 
 export class Installation extends Schema.Class<Installation>(
 	'@hem/console-api/Installation'
 )({
-	account: GithubAccount,
-	connector: Schema.Literal('github'),
+	account: ProviderAccount,
+	connector: Connector,
 	id: InstallationId,
 	providerInstallationId: Schema.String,
 }) {}
 
 export class Binding extends Schema.Class<Binding>('@hem/console-api/Binding')({
+	connector: Connector,
 	id: BindingId,
 	installationId: InstallationId,
+	outputs: Schema.NonEmptyArray(Schema.String),
 }) {}
 
 export class CredentialLease extends Schema.Class<CredentialLease>(
@@ -40,8 +52,8 @@ export class CredentialLease extends Schema.Class<CredentialLease>(
 	values: Schema.Record(Schema.String, Schema.String),
 }) {}
 
-export class GithubInstallationAuthorization extends Schema.Class<GithubInstallationAuthorization>(
-	'@hem/console-api/GithubInstallationAuthorization'
+export class ConnectorInstallationAuthorization extends Schema.Class<ConnectorInstallationAuthorization>(
+	'@hem/console-api/ConnectorInstallationAuthorization'
 )({
 	authorizationUrl: Schema.String,
 	expiresAt: Schema.String,

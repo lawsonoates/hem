@@ -1,5 +1,9 @@
 import { Brand, Schema } from 'effect';
 
+import { ManagedConnector } from '../connector';
+
+export type { ManagedConnector } from '../connector';
+
 export const KeychainSource = Schema.Struct({
 	name: Schema.String,
 	service: Schema.String,
@@ -13,9 +17,7 @@ export type VarId = string & Brand.Brand<'VarId'>;
 const VarId = Brand.make<VarId>((id) => id.startsWith('var_'));
 export const newVarId = (): VarId => VarId(`var_${crypto.randomUUID()}`);
 
-export const VarIdSchema = Schema.String.pipe(
-	Schema.fromBrand('VarId', VarId)
-);
+export const VarIdSchema = Schema.String.pipe(Schema.fromBrand('VarId', VarId));
 
 export type EnvLabel = string & Brand.Brand<'EnvLabel'>;
 const EnvLabel = Brand.nominal<EnvLabel>();
@@ -51,7 +53,7 @@ export type Entry = typeof Entry.Type;
 
 export const ManagedBinding = Schema.Struct({
 	bindingId: Schema.String,
-	connector: Schema.Literal('github'),
+	connector: ManagedConnector,
 	outputs: Schema.NonEmptyArray(Schema.String),
 });
 export type ManagedBinding = typeof ManagedBinding.Type;

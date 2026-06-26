@@ -1,0 +1,1 @@
+ALTER TABLE `installation` ADD `credentials` text;

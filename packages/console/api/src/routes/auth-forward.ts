@@ -1,5 +1,5 @@
 import { Config, Effect, Schema } from 'effect';
-import { HttpServerRequest } from 'effect/unstable/http';
+import { HttpServerRequest, HttpServerResponse } from 'effect/unstable/http';
 
 import { HemAuth } from '../auth';
 import {
@@ -13,15 +13,21 @@ const AuthErrorBody = Schema.Struct({
 	error_description: Schema.optional(Schema.String),
 });
 
+interface AuthForwardInput {
+	readonly body?: unknown;
+	readonly method: 'GET' | 'POST';
+	readonly path: string;
+	readonly searchParams?: Readonly<Record<string, string>>;
+}
+
 const authErrorMessage = (body: unknown, status: number) => {
 	if (
 		typeof body === 'object' &&
 		body !== null &&
 		'message' in body &&
 		typeof body.message === 'string'
-	) {
+	)
 		return body.message;
-	}
 
 	const decoded = Schema.decodeUnknownOption(AuthErrorBody)(body);
 	if (decoded._tag === 'Some') {
@@ -56,40 +62,45 @@ const apiUrl = Config.string('HEM_API_URL').pipe(
 	)
 );
 
-export const forwardAuth = (input: {
-	readonly body?: unknown;
-	readonly method: 'GET' | 'POST';
-	readonly path: string;
-	readonly searchParams?: Readonly<Record<string, string>>;
-}) =>
+const forwardAuthWeb = (input: AuthForwardInput) =>
 	Effect.gen(function* () {
 		const auth = yield* HemAuth.Service;
 		const baseUrl = yield* apiUrl;
 		const serverRequest = yield* HttpServerRequest.HttpServerRequest;
 		const url = new URL(`${baseUrl}${input.path}`);
 		if (input.searchParams) {
-			for (const [key, value] of Object.entries(input.searchParams)) {
+			for (const [key, value] of Object.entries(input.searchParams))
 				url.searchParams.set(key, value);
-			}
 		}
 
 		const headers = new Headers(serverRequest.headers);
-		if (input.body !== undefined && !headers.has('content-type')) {
+		if (input.body !== undefined && !headers.has('content-type'))
 			headers.set('content-type', 'application/json');
-		}
 
 		const request = new Request(url.href, {
 			body:
-				input.body === undefined ? undefined : JSON.stringify(input.body),
+				input.body === undefined
+					? undefined
+					: JSON.stringify(input.body),
 			headers,
 			method: input.method,
 		});
-		const response = yield* Effect.promise(() => auth.handler(request));
+		return yield* Effect.promise(() => auth.handler(request));
+	});
+
+export const forwardAuth = (input: AuthForwardInput) =>
+	Effect.gen(function* () {
+		const response = yield* forwardAuthWeb(input);
 		const body = yield* readJsonBody(response).pipe(
-			Effect.catchTag('AuthRequestError', () => Effect.succeed(undefined))
+			Effect.catchTag('AuthRequestError', () => Effect.void)
 		);
 		return { body, response } as const;
 	});
+
+export const forwardAuthResponse = (input: AuthForwardInput) =>
+	Effect.map(forwardAuthWeb(input), (response) =>
+		HttpServerResponse.fromWeb(response)
+	);
 
 export const decodeAuthSuccess = <A>(
 	schema: Schema.Schema<A>,

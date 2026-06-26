@@ -7,6 +7,10 @@ import {
 	InstallationRequestTable,
 	InstallationTable,
 } from './database/schema/installation.sql';
+import type {
+	ManagedConnector,
+	ProviderCredentials,
+} from './database/schema/installation.sql';
 import { fn } from './util/fn';
 
 export type InstallationRow = typeof InstallationTable.$inferSelect;
@@ -170,8 +174,26 @@ export namespace Installation {
 			account: z.object({
 				id: z.string(),
 				name: z.string(),
-				type: z.enum(['user', 'organization']),
+				type: z.string(),
 			}),
+			connector: z.enum([
+				'github',
+				'notion',
+				'planetscale',
+				'slack',
+				'vercel',
+			]),
+			credentials: z
+				.object({
+					accessToken: z.string(),
+					expiresAt: z.string().nullable().optional(),
+					refreshToken: z.string().nullable().optional(),
+					scope: z.string().nullable().optional(),
+					teamId: z.string().nullable().optional(),
+					tokenType: z.string().nullable().optional(),
+				})
+				.nullable()
+				.optional(),
 			grantedPermissions: z.record(z.string(), z.string()),
 			id: z.string().optional(),
 			ownerId: z.string(),
@@ -185,10 +207,14 @@ export namespace Installation {
 					try: () =>
 						db
 							.insert(InstallationTable)
-							.values({ ...values, connector: 'github' })
+							.values({
+								...values,
+								credentials: values.credentials ?? null,
+							})
 							.onConflictDoUpdate({
 								set: {
 									account: values.account,
+									credentials: values.credentials ?? null,
 									grantedPermissions:
 										values.grantedPermissions,
 								},
@@ -199,4 +225,46 @@ export namespace Installation {
 				});
 			})
 	);
+
+	export const updateCredentials = fn(
+		z.object({
+			credentials: z
+				.object({
+					accessToken: z.string(),
+					expiresAt: z.string().nullable().optional(),
+					refreshToken: z.string().nullable().optional(),
+					scope: z.string().nullable().optional(),
+					teamId: z.string().nullable().optional(),
+					tokenType: z.string().nullable().optional(),
+				})
+				.nullable(),
+			grantedPermissions: z.record(z.string(), z.string()).optional(),
+			id: z.string(),
+		}),
+		(values) =>
+			Effect.gen(function* () {
+				const { db } = yield* Database.Service;
+				return yield* Effect.try({
+					catch: (cause) => new DbError({ cause }),
+					try: () =>
+						db
+							.update(InstallationTable)
+							.set({
+								credentials: values.credentials,
+								...(values.grantedPermissions
+									? {
+											grantedPermissions:
+												values.grantedPermissions,
+										}
+									: {}),
+							})
+							.where(eq(InstallationTable.id, values.id))
+							.returning()
+							.get(),
+				});
+			})
+	);
 }
+
+export type ConnectorCredentials = ProviderCredentials;
+export type ConnectorName = ManagedConnector;
