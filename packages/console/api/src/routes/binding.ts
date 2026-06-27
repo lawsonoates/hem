@@ -5,7 +5,7 @@ import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
 import { ConnectorRegistry } from '../connectors/registry';
-import { Forbidden, NotFound } from '../errors';
+import { BadRequest, Forbidden, NotFound } from '../errors';
 import { CurrentUser } from '../middleware/auth';
 import { Binding, BindingId, InstallationId } from '../schema';
 import type { CreateBindingRequest } from '../schema';
@@ -14,7 +14,7 @@ export const createBinding = (ownerId: string, request: CreateBindingRequest) =>
 	Effect.gen(function* () {
 		const installation = yield* InstallationCore.fromId(
 			request.installationId
-		).pipe(Effect.orDie);
+		);
 		if (!installation) {
 			return yield* new NotFound({
 				message: 'Installation was not found.',
@@ -26,12 +26,10 @@ export const createBinding = (ownerId: string, request: CreateBindingRequest) =>
 			});
 		}
 		const registry = yield* ConnectorRegistry.Service;
-		const connector = yield* registry
-			.get(installation.connector)
-			.pipe(Effect.orDie);
+		const connector = yield* registry.get(installation.connector);
 		const binding = yield* BindingCore.create({
 			installationId: installation.id,
-		}).pipe(Effect.orDie);
+		});
 		return new Binding({
 			connector: installation.connector,
 			id: BindingId.make(binding.id),
@@ -48,6 +46,11 @@ export const BindingLive = HttpApiBuilder.group(
 			Effect.gen(function* () {
 				const user = yield* CurrentUser;
 				return yield* createBinding(user.id, payload);
-			})
+			}).pipe(
+				Effect.catchTags({
+					SchemaError: (error) =>
+						Effect.fail(new BadRequest({ message: error.message })),
+				})
+			)
 		)
 );

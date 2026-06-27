@@ -3,7 +3,7 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { ConfigProvider, Effect, Layer } from 'effect';
 
-import { defaultLayer, GithubConnector } from '../../src/github';
+import { defaultLayer, GithubConnector } from '../../src/connectors/github';
 
 const serveTestGithubApi = (
 	fetch: (request: Request) => Response | Promise<Response>

@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": {
 		"./binding": "./src/binding.ts",
+		"./credentials": "./src/credentials.ts",
 		"./database/database": "./src/database/database.ts",
 		"./installation": "./src/installation.ts",
 		"./database/schema/auth": "./src/database/schema/auth.sql.ts",

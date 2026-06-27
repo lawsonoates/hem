@@ -1,14 +1,18 @@
-import type { ProviderCredentials } from '@hem/console-core/database/schema/installation';
-import { ManagedConnector as ManagedConnectorSchema } from '@hem/core/connector';
-import type { ManagedConnector } from '@hem/core/connector';
-import { Effect, Schema } from 'effect';
+import type {
+	ManagedConnector,
+	ProviderAccountType,
+	ProviderCredentials,
+} from '@hem/core/connector';
+import { ManagedConnectorSchema } from '@hem/core/connector';
+import { Config, Effect, Schema } from 'effect';
+import type { GithubConnectorError } from './github';
 
 export type ConnectorOutputs = readonly [string, ...string[]];
 
 export interface ConnectorAccount {
 	readonly id: string;
 	readonly name: string;
-	readonly type: string;
+	readonly type: ProviderAccountType;
 }
 
 export type ConnectorAuthorizationCallback =
@@ -47,25 +51,40 @@ export class ConnectorError extends Schema.TaggedErrorClass<ConnectorError>()(
 		cause: Schema.optional(Schema.Defect),
 		connector: ManagedConnectorSchema,
 		message: Schema.String,
-	}
+	},
+	{ httpApiStatus: 502 }
 ) {}
+
+export type ManagedConnectorServiceError =
+	| Config.ConfigError
+	| ConnectorError
+	| GithubConnectorError;
 
 export interface ManagedConnectorService {
 	readonly completeAuthorization: (input: {
 		readonly callback: ConnectorAuthorizationCallback;
-	}) => Effect.Effect<CompletedConnectorInstallation, ConnectorError>;
+	}) => Effect.Effect<
+		CompletedConnectorInstallation,
+		ManagedConnectorServiceError
+	>;
 	readonly connector: ManagedConnector;
 	readonly createAuthorizationUrl: (
 		state: string
-	) => Effect.Effect<string, ConnectorError>;
+	) => Effect.Effect<string, ManagedConnectorServiceError>;
 	readonly issueCredential: (
 		input: IssueConnectorCredentialInput
-	) => Effect.Effect<ConnectorCredentialLease, ConnectorError>;
+	) => Effect.Effect<
+		ConnectorCredentialLease,
+		ManagedConnectorServiceError
+	>;
 	readonly outputsForInstallation: (
 		account: ConnectorAccount
 	) => ConnectorOutputs;
 }
 
+/**
+ * Requires an OAuth authorization callback for OAuth-backed connectors.
+ */
 export const requireOAuthCode = (
 	connector: ManagedConnector,
 	callback: ConnectorAuthorizationCallback
@@ -80,6 +99,9 @@ export const requireOAuthCode = (
 	);
 };
 
+/**
+ * Requires a GitHub App installation callback for GitHub.
+ */
 export const requireGithubInstallationId = (
 	connector: ManagedConnector,
 	callback: ConnectorAuthorizationCallback

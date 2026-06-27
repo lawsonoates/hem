@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
-import { defaultLayer, NotionConnector } from '../../src/connectors/notion';
+import { layer, NotionConnector } from '../../src/connectors/notion';
 import { runWithLayer } from './fixture';
 
 test('exchanges a Notion OAuth code', async () => {
 	const completed = await runWithLayer(
-		defaultLayer,
+		layer,
 		{
 			NOTION_OAUTH_CLIENT_ID: 'notion-client',
 			NOTION_OAUTH_CLIENT_SECRET: 'notion-secret',

@@ -3,7 +3,7 @@ import { Database as BunDatabase } from 'bun:sqlite';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import type { BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
-import { Config, Context, Data, Effect, Layer } from 'effect';
+import { Config, Context, Effect, Layer, Schema } from 'effect';
 
 import * as authSchema from './schema/auth.sql';
 import * as bindingSchema from './schema/binding.sql';
@@ -69,9 +69,11 @@ export function layerFromPath(path: string) {
 
 export const defaultLayer = layer;
 
-export class DbError extends Data.TaggedError('DbError')<{
-	readonly cause: unknown;
-}> {}
+export class DbError extends Schema.TaggedErrorClass<DbError>()(
+	'DbError',
+	{ cause: Schema.Defect },
+	{ httpApiStatus: 500 }
+) {}
 
 // oxlint-disable-next-line import/no-self-import, oxc/no-barrel-file -- namespace projection for Effect service module
 export * as Database from './database';

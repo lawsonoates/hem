@@ -6,6 +6,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization } from 'better-auth/plugins';
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { Config, Context, Effect, Layer, Redacted } from 'effect';
+import { HttpEffect, HttpRouter } from 'effect/unstable/http';
 
 export interface Interface {
 	readonly handler: (request: Request) => Promise<Response>;
@@ -50,6 +51,17 @@ export const layer = Layer.effect(
 );
 
 export const defaultLayer = layer;
+
+export const route = HttpRouter.use((router) =>
+	Effect.gen(function* () {
+		const auth = yield* Service;
+		yield* router.add(
+			'*',
+			'/v1/auth/*',
+			HttpEffect.fromWebHandler(auth.handler)
+		);
+	})
+);
 
 // oxlint-disable-next-line import/no-self-import, oxc/no-barrel-file -- namespace projection for Effect service module
 export * as HemAuth from '.';

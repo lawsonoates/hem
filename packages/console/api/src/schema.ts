@@ -1,6 +1,7 @@
 import {
-	ManagedConnector as ManagedConnectorSchema,
-	OAuthConnector as OAuthConnectorSchema,
+	ManagedConnectorSchema,
+	OAuthConnectorSchema,
+	ProviderAccount as CoreProviderAccount,
 } from '@hem/core/connector';
 import { Schema } from 'effect';
 
@@ -21,13 +22,8 @@ export type Connector = typeof Connector.Type;
 export const OAuthConnector = OAuthConnectorSchema;
 export type OAuthConnector = typeof OAuthConnector.Type;
 
-export class ProviderAccount extends Schema.Class<ProviderAccount>(
-	'@hem/console-api/ProviderAccount'
-)({
-	id: Schema.String,
-	name: Schema.String,
-	type: Schema.String,
-}) {}
+export const ProviderAccount = CoreProviderAccount;
+export type ProviderAccount = typeof ProviderAccount.Type;
 
 export class Installation extends Schema.Class<Installation>(
 	'@hem/console-api/Installation'
@@ -109,57 +105,4 @@ export class DeviceAccessToken extends Schema.Class<DeviceAccessToken>(
 	expires_in: Schema.Number,
 	scope: Schema.String,
 	token_type: Schema.String,
-}) {}
-
-export class DeviceClaim extends Schema.Class<DeviceClaim>(
-	'@hem/console-api/DeviceClaim'
-)({
-	status: Schema.Literals(['pending', 'approved', 'denied']),
-	user_code: Schema.String,
-}) {}
-
-export class ApproveDeviceRequest extends Schema.Class<ApproveDeviceRequest>(
-	'@hem/console-api/ApproveDeviceRequest'
-)({
-	userCode: Schema.String,
-}) {}
-
-export class AuthSuccess extends Schema.Class<AuthSuccess>(
-	'@hem/console-api/AuthSuccess'
-)({
-	success: Schema.Boolean,
-}) {}
-
-export class EmailSignInRequest extends Schema.Class<EmailSignInRequest>(
-	'@hem/console-api/EmailSignInRequest'
-)({
-	email: Schema.String,
-	password: Schema.String,
-}) {}
-
-export class EmailSignUpRequest extends Schema.Class<EmailSignUpRequest>(
-	'@hem/console-api/EmailSignUpRequest'
-)({
-	email: Schema.String,
-	name: Schema.String,
-	password: Schema.String,
-}) {}
-
-export class AuthUser extends Schema.Class<AuthUser>(
-	'@hem/console-api/AuthUser'
-)({
-	email: Schema.String,
-	id: Schema.optional(Schema.String),
-	name: Schema.String,
-}) {}
-
-export class AuthSession extends Schema.Class<AuthSession>(
-	'@hem/console-api/AuthSession'
-)({
-	session: Schema.Struct({
-		expiresAt: Schema.String,
-		token: Schema.String,
-		userId: Schema.String,
-	}),
-	user: AuthUser,
 }) {}

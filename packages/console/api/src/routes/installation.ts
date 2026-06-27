@@ -8,6 +8,8 @@ import {
 	getConnectorInstallationStatus,
 	startConnectorInstallation,
 } from '../installation/flow';
+import { ConnectorError } from '../connectors/types';
+import { BadRequest } from '../errors';
 import { CurrentUser } from '../middleware/auth';
 
 export const InstallationLive = HttpApiBuilder.group(
@@ -22,7 +24,30 @@ export const InstallationLive = HttpApiBuilder.group(
 						user.id,
 						params.connector
 					);
-				})
+				}).pipe(
+					Effect.catchTags({
+						ConfigError: (error) =>
+							Effect.fail(
+								new ConnectorError({
+									cause: error,
+									connector: params.connector,
+									message: `${params.connector} connector is not configured correctly.`,
+								})
+							),
+						GithubConnectorError: (error) =>
+							Effect.fail(
+								new ConnectorError({
+									cause: error.cause,
+									connector: params.connector,
+									message: error.message,
+								})
+							),
+						SchemaError: (error) =>
+							Effect.fail(
+								new BadRequest({ message: error.message })
+							),
+					})
+				)
 			)
 			.handle('completeConnectorInstallation', ({ params, query }) =>
 				Effect.gen(function* () {
@@ -34,7 +59,30 @@ export const InstallationLive = HttpApiBuilder.group(
 						params.connector,
 						{ callback, state: query.state }
 					);
-				})
+				}).pipe(
+					Effect.catchTags({
+						ConfigError: (error) =>
+							Effect.fail(
+								new ConnectorError({
+									cause: error,
+									connector: params.connector,
+									message: `${params.connector} connector is not configured correctly.`,
+								})
+							),
+						GithubConnectorError: (error) =>
+							Effect.fail(
+								new ConnectorError({
+									cause: error.cause,
+									connector: params.connector,
+									message: error.message,
+								})
+							),
+						SchemaError: (error) =>
+							Effect.fail(
+								new BadRequest({ message: error.message })
+							),
+					})
+				)
 			)
 			.handle('getConnectorInstallationStatus', ({ params, query }) =>
 				Effect.gen(function* () {
@@ -43,6 +91,13 @@ export const InstallationLive = HttpApiBuilder.group(
 						user.id,
 						query.request_id
 					);
-				})
+				}).pipe(
+					Effect.catchTags({
+						SchemaError: (error) =>
+							Effect.fail(
+								new BadRequest({ message: error.message })
+							),
+					})
+				)
 			)
 );

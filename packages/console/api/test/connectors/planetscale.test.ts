@@ -3,14 +3,14 @@ import { expect, test } from 'bun:test';
 import { Effect } from 'effect';
 
 import {
-	defaultLayer,
+	layer,
 	PlanetScaleConnector,
 } from '../../src/connectors/planetscale';
 import { runWithLayer } from './fixture';
 
 test('exchanges a PlanetScale OAuth code', async () => {
 	const completed = await runWithLayer(
-		defaultLayer,
+		layer,
 		{
 			PLANETSCALE_OAUTH_CLIENT_ID: 'ps-client',
 			PLANETSCALE_OAUTH_CLIENT_SECRET: 'ps-secret',

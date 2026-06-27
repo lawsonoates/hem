@@ -4,6 +4,7 @@ import { FetchHttpClient } from 'effect/unstable/http';
 export const testHttpClientLayer = (
 	handler: (request: Request) => Response | Promise<Response>
 ) => {
+	// SAFETY: test seam substitutes fetch with a local handler returning Web Responses.
 	const testFetch = ((url: string | URL | Request, init?: RequestInit) => {
 		const request =
 			url instanceof Request
@@ -30,5 +31,6 @@ export const runWithLayer = <A, E, R, Provided>(
 				ConfigProvider.ConfigProvider,
 				ConfigProvider.fromUnknown(config)
 			)
+			// SAFETY: provided layers close over the remaining environment for tests.
 		) as Effect.Effect<A, E>
 	);

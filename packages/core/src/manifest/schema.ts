@@ -1,6 +1,6 @@
 import { Brand, Schema } from 'effect';
 
-import { ManagedConnector } from '../connector';
+import { ManagedConnectorSchema } from '../connector';
 
 export type { ManagedConnector } from '../connector';
 
@@ -53,7 +53,7 @@ export type Entry = typeof Entry.Type;
 
 export const ManagedBinding = Schema.Struct({
 	bindingId: Schema.String,
-	connector: ManagedConnector,
+	connector: ManagedConnectorSchema,
 	outputs: Schema.NonEmptyArray(Schema.String),
 });
 export type ManagedBinding = typeof ManagedBinding.Type;

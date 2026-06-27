@@ -1,5 +1,5 @@
 import { Database } from '@hem/console-core/database/database';
-import { Layer, ManagedRuntime } from 'effect';
+import { Effect, Layer, ManagedRuntime } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
@@ -19,7 +19,9 @@ export const ApiLayer = HttpApiBuilder.layer(HemApi).pipe(
 	Layer.provide(AuthorizationLive)
 );
 
-export const HttpAppLayer = Layer.mergeAll(ServicesLayer, ApiLayer);
+export const HttpRoutesLayer = Layer.mergeAll(ApiLayer, HemAuth.route);
+
+export const HttpAppLayer = HttpRoutesLayer.pipe(Layer.provide(ServicesLayer));
 
 /** Domain services for scripts, tests, and non-HTTP entrypoints. */
 export const AppLayer = ServicesLayer;
@@ -40,7 +42,8 @@ export const makeRuntime = <R, E>(layer: Layer.Layer<R, E>) => {
 	return {
 		dispose: () => rt.dispose(),
 		runFork: rt.runFork.bind(rt),
-		runPromise: rt.runPromise.bind(rt),
+		runPromise: <A, Err>(effect: Effect.Effect<A, Err, any>) =>
+			rt.runPromise(effect),
 		runPromiseExit: rt.runPromiseExit.bind(rt),
 	};
 };

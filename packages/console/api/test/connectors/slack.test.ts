@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
-import { defaultLayer, SlackConnector } from '../../src/connectors/slack';
+import { layer, SlackConnector } from '../../src/connectors/slack';
 import { runWithLayer } from './fixture';
 
 test('exchanges a Slack OAuth code', async () => {
 	const completed = await runWithLayer(
-		defaultLayer,
+		layer,
 		{
 			PUBLIC_API_URL: 'http://127.0.0.1:3000',
 			SLACK_CLIENT_ID: 'slack-client',

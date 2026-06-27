@@ -15,7 +15,7 @@ import { HttpRouter } from 'effect/unstable/http';
 
 import { HemAuth } from '../src/auth';
 import { ConnectorRegistry } from '../src/connectors/registry';
-import { ApiLayer } from '../src/effect/app-runtime';
+import { HttpRoutesLayer } from '../src/effect/app-runtime';
 
 const databasePath = `${import.meta.dir}/auth.test.db`;
 const publicUrl = 'http://127.0.0.1:3000';
@@ -152,7 +152,7 @@ test('preserves browser session cookies when approving a device request', async 
 		HemAuth.defaultLayer,
 		ConnectorRegistryTest
 	);
-	const appLayer = ApiLayer.pipe(
+	const appLayer = HttpRoutesLayer.pipe(
 		Layer.provide(servicesLayer),
 		Layer.provide(configLayer)
 	) as Layer.Layer<never, never, HttpRouter.HttpRouter>;

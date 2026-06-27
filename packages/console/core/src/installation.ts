@@ -1,7 +1,10 @@
 import { and, eq, gt } from 'drizzle-orm';
-import { Effect } from 'effect';
-import { z } from 'zod';
+import { Effect, Schema } from 'effect';
 
+import {
+	persistProviderCredentials,
+	redactProviderCredentials,
+} from './credentials';
 import { Database, DbError } from './database/database';
 import {
 	InstallationRequestTable,
@@ -11,6 +14,14 @@ import type {
 	ManagedConnector,
 	ProviderCredentials,
 } from './database/schema/installation.sql';
+import {
+	InstallationRequestComplete,
+	InstallationRequestCreate,
+	InstallationRequestPoll,
+	InstallationSave,
+	InstallationUpdateCredentials,
+} from './installation/commands';
+import { parseInstallationRow } from './installation/parse';
 import { fn } from './util/fn';
 
 export type InstallationRow = typeof InstallationTable.$inferSelect;
@@ -20,29 +31,26 @@ export type InstallationPollResult =
 	| { readonly _tag: 'Pending' }
 	| { readonly _tag: 'Complete'; readonly installationId: string };
 
+export { parseInstallationRow } from './installation/parse';
+export type { ParsedInstallationRow } from './installation/parse';
+
 export namespace InstallationRequest {
-	export const create = fn(
-		z.object({
-			expiresAt: z.date(),
-			ownerId: z.string(),
-			state: z.string(),
-		}),
-		(values) =>
-			Effect.gen(function* () {
-				const { db } = yield* Database.Service;
-				return yield* Effect.try({
-					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db
-							.insert(InstallationRequestTable)
-							.values(values)
-							.returning()
-							.get(),
-				});
-			})
+	export const create = fn(InstallationRequestCreate, (values) =>
+		Effect.gen(function* () {
+			const { db } = yield* Database.Service;
+			return yield* Effect.try({
+				catch: (cause) => new DbError({ cause }),
+				try: () =>
+					db
+						.insert(InstallationRequestTable)
+						.values(values)
+						.returning()
+						.get(),
+			});
+		})
 	);
 
-	export const owner = fn(z.string(), (state) =>
+	export const owner = fn(Schema.String, (state) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
 			return yield* Effect.try({
@@ -66,7 +74,7 @@ export namespace InstallationRequest {
 	);
 
 	export const complete = fn(
-		z.object({ installationId: z.string(), state: z.string() }),
+		InstallationRequestComplete,
 		({ installationId, state }) =>
 			Effect.gen(function* () {
 				const { db } = yield* Database.Service;
@@ -83,7 +91,7 @@ export namespace InstallationRequest {
 	);
 
 	export const poll = fn(
-		z.object({ ownerId: z.string(), state: z.string() }),
+		InstallationRequestPoll,
 		({ ownerId, state }) =>
 			Effect.gen(function* () {
 				const { db } = yield* Database.Service;
@@ -134,10 +142,10 @@ export namespace InstallationRequest {
 }
 
 export namespace Installation {
-	export const fromId = fn(z.string(), (id) =>
+	export const fromId = fn(Schema.String, (id) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			const row = yield* Effect.try({
 				catch: (cause) => new DbError({ cause }),
 				try: () =>
 					db
@@ -146,13 +154,15 @@ export namespace Installation {
 						.where(eq(InstallationTable.id, id))
 						.get(),
 			});
+			if (!row) return;
+			return yield* parseInstallationRow(row);
 		})
 	);
 
-	export const fromProviderId = fn(z.string(), (providerInstallationId) =>
+	export const fromProviderId = fn(Schema.String, (providerInstallationId) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			const row = yield* Effect.try({
 				catch: (cause) => new DbError({ cause }),
 				try: () =>
 					db
@@ -166,91 +176,68 @@ export namespace Installation {
 						)
 						.get(),
 			});
+			if (!row) return;
+			return yield* parseInstallationRow(row);
 		})
 	);
 
-	export const save = fn(
-		z.object({
-			account: z.object({
-				id: z.string(),
-				name: z.string(),
-				type: z.string(),
-			}),
-			connector: z.enum([
-				'github',
-				'notion',
-				'planetscale',
-				'slack',
-				'vercel',
-			]),
-			credentials: z
-				.object({
-					accessToken: z.string(),
-					expiresAt: z.string().nullable().optional(),
-					refreshToken: z.string().nullable().optional(),
-					scope: z.string().nullable().optional(),
-					teamId: z.string().nullable().optional(),
-					tokenType: z.string().nullable().optional(),
-				})
-				.nullable()
-				.optional(),
-			grantedPermissions: z.record(z.string(), z.string()),
-			id: z.string().optional(),
-			ownerId: z.string(),
-			providerInstallationId: z.string(),
-		}),
-		(values) =>
-			Effect.gen(function* () {
-				const { db } = yield* Database.Service;
-				return yield* Effect.try({
-					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db
-							.insert(InstallationTable)
-							.values({
-								...values,
-								credentials: values.credentials ?? null,
-							})
-							.onConflictDoUpdate({
-								set: {
-									account: values.account,
-									credentials: values.credentials ?? null,
-									grantedPermissions:
-										values.grantedPermissions,
-								},
-								target: InstallationTable.id,
-							})
-							.returning()
-							.get(),
-				});
-			})
+	export const save = fn(InstallationSave, (values) =>
+		Effect.gen(function* () {
+			const { db } = yield* Database.Service;
+			const persistedCredentials = values.credentials
+				? persistProviderCredentials(
+						redactProviderCredentials(values.credentials)
+					)
+				: null;
+			return yield* Effect.try({
+				catch: (cause) => new DbError({ cause }),
+				try: () =>
+					db
+						.insert(InstallationTable)
+						.values({
+							account: values.account,
+							connector: values.connector,
+							credentials: persistedCredentials,
+							grantedPermissions: values.grantedPermissions,
+							ownerId: values.ownerId,
+							providerInstallationId:
+								values.providerInstallationId,
+							...(values.id ? { id: values.id } : {}),
+						})
+						.onConflictDoUpdate({
+							set: {
+								account: values.account,
+								credentials: persistedCredentials,
+								grantedPermissions: values.grantedPermissions,
+							},
+							target: InstallationTable.id,
+						})
+						.returning()
+						.get(),
+			}).pipe(
+				Effect.flatMap((row) => parseInstallationRow(row))
+			);
+		})
 	);
 
 	export const updateCredentials = fn(
-		z.object({
-			credentials: z
-				.object({
-					accessToken: z.string(),
-					expiresAt: z.string().nullable().optional(),
-					refreshToken: z.string().nullable().optional(),
-					scope: z.string().nullable().optional(),
-					teamId: z.string().nullable().optional(),
-					tokenType: z.string().nullable().optional(),
-				})
-				.nullable(),
-			grantedPermissions: z.record(z.string(), z.string()).optional(),
-			id: z.string(),
-		}),
+		InstallationUpdateCredentials,
 		(values) =>
 			Effect.gen(function* () {
 				const { db } = yield* Database.Service;
+				const persistedCredentials =
+					values.credentials === null
+						? null
+						: persistProviderCredentials(
+								redactProviderCredentials(values.credentials)
+							);
 				return yield* Effect.try({
 					catch: (cause) => new DbError({ cause }),
 					try: () =>
 						db
 							.update(InstallationTable)
 							.set({
-								credentials: values.credentials,
+								credentials: persistedCredentials,
 								...(values.grantedPermissions
 									? {
 											grantedPermissions:
@@ -261,7 +248,9 @@ export namespace Installation {
 							.where(eq(InstallationTable.id, values.id))
 							.returning()
 							.get(),
-				});
+				}).pipe(
+					Effect.flatMap((row) => parseInstallationRow(row))
+				);
 			})
 	);
 }

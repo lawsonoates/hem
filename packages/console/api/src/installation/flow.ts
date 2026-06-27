@@ -2,12 +2,12 @@ import {
 	Installation as InstallationCore,
 	InstallationRequest,
 } from '@hem/console-core/installation';
-import type { InstallationRow } from '@hem/console-core/installation';
+import type { ParsedInstallationRow } from '@hem/console-core/installation';
 import {
 	isOAuthConnector,
 	type ManagedConnector,
 } from '@hem/core/connector';
-import { Effect } from 'effect';
+import { Clock, Effect } from 'effect';
 
 import { ConnectorRegistry } from '../connectors/registry';
 import type { ConnectorAuthorizationCallback } from '../connectors/types';
@@ -16,25 +16,27 @@ import {
 	InvalidAuthorization,
 	InvalidInstallationState,
 	NotFound,
-	ProviderUnavailable,
 } from '../errors';
+import { randomUuid } from '../prelude/id';
 import {
 	ConnectorInstallationAuthorization,
 	Installation,
 	InstallationId,
-	ProviderAccount,
 } from '../schema';
 
 const INSTALLATION_TTL_MS = 10 * 60 * 1000;
 
-const toInstallation = (row: InstallationRow) =>
+const toInstallation = (row: ParsedInstallationRow) =>
 	new Installation({
-		account: new ProviderAccount(row.account),
+		account: row.account,
 		connector: row.connector,
 		id: InstallationId.make(row.id),
 		providerInstallationId: row.providerInstallationId,
 	});
 
+/**
+ * Starts a managed connector installation for a Hem user.
+ */
 export const startConnectorInstallation = (
 	ownerId: string,
 	connectorName: ManagedConnector
@@ -42,21 +44,15 @@ export const startConnectorInstallation = (
 	Effect.gen(function* () {
 		const registry = yield* ConnectorRegistry.Service;
 		const connector = yield* registry.get(connectorName);
-		const state = crypto.randomUUID();
-		const expiresAt = new Date(Date.now() + INSTALLATION_TTL_MS);
-		yield* InstallationRequest.create({ expiresAt, ownerId, state }).pipe(
-			Effect.orDie
-		);
-		const authorizationUrl = yield* connector
-			.createAuthorizationUrl(state)
-			.pipe(
-				Effect.mapError(
-					(error) =>
-						new ProviderUnavailable({
-							message: error.message,
-						})
-				)
-			);
+		const state = yield* randomUuid;
+		const now = yield* Clock.currentTimeMillis;
+		const expiresAt = new Date(now + INSTALLATION_TTL_MS);
+		yield* InstallationRequest.create({
+			expiresAt,
+			ownerId,
+			state,
+		});
+		const authorizationUrl = yield* connector.createAuthorizationUrl(state);
 		return new ConnectorInstallationAuthorization({
 			authorizationUrl,
 			expiresAt: expiresAt.toISOString(),
@@ -64,6 +60,9 @@ export const startConnectorInstallation = (
 		});
 	});
 
+/**
+ * Parses an OAuth or GitHub callback query into a connector callback value.
+ */
 export const callbackFromQuery = (
 	connectorName: ManagedConnector,
 	query: {
@@ -94,6 +93,9 @@ export const callbackFromQuery = (
 	});
 };
 
+/**
+ * Completes a managed connector installation from an authorization callback.
+ */
 export const completeConnectorInstallation = (
 	connectorName: ManagedConnector,
 	input: {
@@ -102,9 +104,7 @@ export const completeConnectorInstallation = (
 	}
 ) =>
 	Effect.gen(function* () {
-		const ownerId = yield* InstallationRequest.owner(input.state).pipe(
-			Effect.orDie
-		);
+		const ownerId = yield* InstallationRequest.owner(input.state);
 		if (!ownerId) {
 			return yield* new InvalidInstallationState({
 				message: 'Installation state is invalid or expired.',
@@ -112,19 +112,12 @@ export const completeConnectorInstallation = (
 		}
 		const registry = yield* ConnectorRegistry.Service;
 		const connector = yield* registry.get(connectorName);
-		const completed = yield* connector
-			.completeAuthorization({ callback: input.callback })
-			.pipe(
-				Effect.mapError(
-					(error) =>
-						new ProviderUnavailable({
-							message: error.message,
-						})
-				)
-			);
+		const completed = yield* connector.completeAuthorization({
+			callback: input.callback,
+		});
 		const existing = yield* InstallationCore.fromProviderId(
 			completed.providerInstallationId
-		).pipe(Effect.orDie);
+		);
 		if (existing && existing.ownerId !== ownerId) {
 			return yield* new InvalidInstallationState({
 				message: `${connector.connector} installation belongs to another Hem user.`,
@@ -138,7 +131,7 @@ export const completeConnectorInstallation = (
 			id: existing?.id,
 			ownerId,
 			providerInstallationId: completed.providerInstallationId,
-		}).pipe(Effect.orDie);
+		});
 		if (!installation) {
 			return yield* Effect.die(
 				new Error(
@@ -149,10 +142,13 @@ export const completeConnectorInstallation = (
 		yield* InstallationRequest.complete({
 			installationId: installation.id,
 			state: input.state,
-		}).pipe(Effect.orDie);
+		});
 		return toInstallation(installation);
 	});
 
+/**
+ * Polls a managed connector installation request for completion.
+ */
 export const getConnectorInstallationStatus = (
 	ownerId: string,
 	requestId: string
@@ -161,7 +157,7 @@ export const getConnectorInstallationStatus = (
 		const status = yield* InstallationRequest.poll({
 			ownerId,
 			state: requestId,
-		}).pipe(Effect.orDie);
+		});
 		if (status._tag === 'Invalid') {
 			return yield* new InvalidAuthorization({
 				message: 'Installation request is invalid or expired.',
@@ -174,7 +170,7 @@ export const getConnectorInstallationStatus = (
 		}
 		const installation = yield* InstallationCore.fromId(
 			status.installationId
-		).pipe(Effect.orDie);
+		);
 		if (!installation) {
 			return yield* new NotFound({
 				message: 'Installation was not found.',

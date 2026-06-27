@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
-import { defaultLayer, VercelConnector } from '../../src/connectors/vercel';
+import { layer, VercelConnector } from '../../src/connectors/vercel';
 import { runWithLayer } from './fixture';
 
 test('exchanges a Vercel OAuth code', async () => {
 	const completed = await runWithLayer(
-		defaultLayer,
+		layer,
 		{
 			PUBLIC_API_URL: 'http://127.0.0.1:3000',
 			VERCEL_CLIENT_ID: 'vercel-client',
@@ -30,6 +30,6 @@ test('exchanges a Vercel OAuth code', async () => {
 	);
 
 	expect(completed.providerInstallationId).toBe('vercel:team_9');
-	expect(completed.account.type).toBe('team');
+	expect(completed.account.type).toBe('organization');
 	expect(completed.credentials?.teamId).toBe('team_9');
 });

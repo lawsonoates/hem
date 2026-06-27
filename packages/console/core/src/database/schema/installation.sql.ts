@@ -1,27 +1,23 @@
-import type { ManagedConnector } from '@hem/core/connector';
+import {
+	MANAGED_CONNECTORS,
+	type ManagedConnector,
+	type ProviderAccountType,
+	type ProviderCredentials,
+} from '@hem/core/connector';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { user } from './auth.sql';
 import { id, timestamps } from './utils';
 
-export type { ManagedConnector } from '@hem/core/connector';
+export type { ManagedConnector, ProviderCredentials } from '@hem/core/connector';
 
 export interface ProviderAccount {
 	readonly id: string;
 	readonly name: string;
-	readonly type: string;
+	readonly type: ProviderAccountType;
 }
 
 export type ConnectorPermissions = Readonly<Record<string, string>>;
-
-export interface ProviderCredentials {
-	readonly accessToken: string;
-	readonly expiresAt?: string | null;
-	readonly refreshToken?: string | null;
-	readonly scope?: string | null;
-	readonly teamId?: string | null;
-	readonly tokenType?: string | null;
-}
 
 export const InstallationTable = sqliteTable(
 	'installation',
@@ -30,7 +26,7 @@ export const InstallationTable = sqliteTable(
 			.$type<ProviderAccount>()
 			.notNull(),
 		connector: text('connector', {
-			enum: ['github', 'notion', 'planetscale', 'slack', 'vercel'],
+			enum: MANAGED_CONNECTORS as unknown as [string, ...string[]],
 		})
 			.$type<ManagedConnector>()
 			.notNull(),
