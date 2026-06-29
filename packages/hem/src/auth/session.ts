@@ -28,9 +28,9 @@ const readSessions = Effect.gen(function* () {
 	if (!(yield* fs.exists(GlobalPath.auth))) return {};
 
 	const content = yield* fs.readFileString(GlobalPath.auth);
-	return yield* Schema.decodeEffect(
-		Schema.fromJsonString(StoredSessions)
-	)(content).pipe(
+	return yield* Schema.decodeEffect(Schema.fromJsonString(StoredSessions))(
+		content
+	).pipe(
 		Effect.mapError(
 			() =>
 				new HemError({

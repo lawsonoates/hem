@@ -6,6 +6,8 @@ import {
 	HttpClient,
 	HttpClientRequest,
 } from 'effect/unstable/http';
+
+import { randomUuid } from '../prelude/id';
 import {
 	expiresAtFromSeconds,
 	issueOAuthCredential,
@@ -16,7 +18,6 @@ import {
 	readProviderSchema,
 	tokenCredentials,
 } from './oauth-client';
-import { randomUuid } from '../prelude/id';
 import {
 	PlanetScaleTokenInfoResponse,
 	PlanetScaleTokenResponse,
@@ -54,8 +55,7 @@ export const layer = Layer.effect(
 					'planetscale',
 					publicApiUrl
 				);
-				const { clientId } =
-					yield* providerCredentials('planetscale');
+				const { clientId } = yield* providerCredentials('planetscale');
 				const url = new URL(
 					'https://auth.planetscale.com/oauth/authorize'
 				);
@@ -112,9 +112,9 @@ export const layer = Layer.effect(
 					const scope = info?.scope ?? parsed.scope ?? null;
 					const expiresAt = info?.exp
 						? new Date(info.exp * 1000).toISOString()
-						: parsed.expires_in
+						: (parsed.expires_in
 							? yield* expiresAtFromSeconds(parsed.expires_in)
-							: null;
+							: null);
 					return {
 						account: {
 							id: subject,
@@ -170,17 +170,12 @@ export const layer = Layer.effect(
 
 		const issueCredential = Effect.fn(
 			'PlanetScaleConnector.issueCredential'
-		)(
-			(
-				input: Parameters<
-					ManagedConnectorService['issueCredential']
-				>[0]
-			) =>
-				issueOAuthCredential({
-					connector: 'planetscale',
-					credentials: input.credentials,
-					refresh: refreshCredentials,
-				})
+		)((input: Parameters<ManagedConnectorService['issueCredential']>[0]) =>
+			issueOAuthCredential({
+				connector: 'planetscale',
+				credentials: input.credentials,
+				refresh: refreshCredentials,
+			})
 		);
 
 		return Service.of({
@@ -188,8 +183,7 @@ export const layer = Layer.effect(
 			connector: 'planetscale',
 			createAuthorizationUrl,
 			issueCredential,
-			outputsForInstallation: () =>
-				CONNECTOR_DEFAULT_OUTPUTS.planetscale,
+			outputsForInstallation: () => CONNECTOR_DEFAULT_OUTPUTS.planetscale,
 		});
 	})
 );

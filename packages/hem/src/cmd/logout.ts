@@ -7,9 +7,9 @@ import { apiBaseUrl, clearSession, getSession } from '../auth/session';
 const logout = Effect.gen(function* () {
 	const baseUrl = yield* apiBaseUrl;
 	const session = yield* getSession.pipe(Effect.option);
-	if (Option.isSome(session)) {
+	if (Option.isSome(session))
 		yield* signOut(session.value.accessToken).pipe(Effect.ignore);
-	}
+
 	yield* clearSession(baseUrl);
 
 	yield* Console.log('✓ You are now logged out');

@@ -2,10 +2,7 @@ import { expect, test } from 'bun:test';
 
 import { Effect } from 'effect';
 
-import {
-	layer,
-	PlanetScaleConnector,
-} from '../../src/connectors/planetscale';
+import { layer, PlanetScaleConnector } from '../../src/connectors/planetscale';
 import { runWithLayer } from './fixture';
 
 test('exchanges a PlanetScale OAuth code', async () => {

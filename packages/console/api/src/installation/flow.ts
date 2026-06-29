@@ -3,10 +3,8 @@ import {
 	InstallationRequest,
 } from '@hem/console-core/installation';
 import type { ParsedInstallationRow } from '@hem/console-core/installation';
-import {
-	isOAuthConnector,
-	type ManagedConnector,
-} from '@hem/core/connector';
+import { isOAuthConnector } from '@hem/core/connector';
+import type { ManagedConnector } from '@hem/core/connector';
 import { Clock, Effect } from 'effect';
 
 import { ConnectorRegistry } from '../connectors/registry';

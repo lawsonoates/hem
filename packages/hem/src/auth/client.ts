@@ -1,8 +1,10 @@
 import {
 	DeviceAccessToken,
 	DeviceAuthorization,
-	type ExchangeDeviceTokenRequest,
-	type StartDeviceAuthorizationRequest,
+} from '@hem/console-api/schema';
+import type {
+	ExchangeDeviceTokenRequest,
+	StartDeviceAuthorizationRequest,
 } from '@hem/console-api/schema';
 import { HemError } from '@hem/core/error';
 import { Effect, Schema } from 'effect';

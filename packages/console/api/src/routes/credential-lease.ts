@@ -1,8 +1,8 @@
+import { Binding as BindingCore } from '@hem/console-core/binding';
 import {
 	persistProviderCredentials,
 	redactProviderCredentials,
 } from '@hem/console-core/credentials';
-import { Binding as BindingCore } from '@hem/console-core/binding';
 import { Installation as InstallationCore } from '@hem/console-core/installation';
 import { Effect } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
@@ -44,32 +44,34 @@ export const createCredentialLease = (
 		const storedCredentials = installation.credentials
 			? redactProviderCredentials(installation.credentials)
 			: null;
-		const credential = yield* connector.issueCredential({
-			credentials: storedCredentials
-				? persistProviderCredentials(storedCredentials)
-				: null,
-			grantedPermissions: installation.grantedPermissions,
-			providerInstallationId: installation.providerInstallationId,
-		}).pipe(
-			Effect.catchTags({
-				ConfigError: (error) =>
-					Effect.fail(
-						new ConnectorError({
-							cause: error,
-							connector: installation.connector,
-							message: `${installation.connector} connector is not configured correctly.`,
-						})
-					),
-				GithubConnectorError: (error) =>
-					Effect.fail(
-						new ConnectorError({
-							cause: error.cause,
-							connector: installation.connector,
-							message: error.message,
-						})
-					),
+		const credential = yield* connector
+			.issueCredential({
+				credentials: storedCredentials
+					? persistProviderCredentials(storedCredentials)
+					: null,
+				grantedPermissions: installation.grantedPermissions,
+				providerInstallationId: installation.providerInstallationId,
 			})
-		);
+			.pipe(
+				Effect.catchTags({
+					ConfigError: (error) =>
+						Effect.fail(
+							new ConnectorError({
+								cause: error,
+								connector: installation.connector,
+								message: `${installation.connector} connector is not configured correctly.`,
+							})
+						),
+					GithubConnectorError: (error) =>
+						Effect.fail(
+							new ConnectorError({
+								cause: error.cause,
+								connector: installation.connector,
+								message: error.message,
+							})
+						),
+				})
+			);
 		if (credential.credentials) {
 			yield* InstallationCore.updateCredentials({
 				credentials: persistProviderCredentials(

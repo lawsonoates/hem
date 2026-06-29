@@ -7,9 +7,7 @@ export const testHttpClientLayer = (
 	// SAFETY: test seam substitutes fetch with a local handler returning Web Responses.
 	const testFetch = ((url: string | URL | Request, init?: RequestInit) => {
 		const request =
-			url instanceof Request
-				? url
-				: new Request(url.toString(), init);
+			url instanceof Request ? url : new Request(url.toString(), init);
 		return Promise.resolve(handler(request));
 	}) as typeof globalThis.fetch;
 
@@ -26,7 +24,9 @@ export const runWithLayer = <A, E, R, Provided>(
 ) =>
 	Effect.runPromise(
 		effect.pipe(
-			Effect.provide(layer.pipe(Layer.provide(testHttpClientLayer(handler)))),
+			Effect.provide(
+				layer.pipe(Layer.provide(testHttpClientLayer(handler)))
+			),
 			Effect.provideService(
 				ConfigProvider.ConfigProvider,
 				ConfigProvider.fromUnknown(config)

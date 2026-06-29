@@ -8,10 +8,7 @@ import { Console, Effect, Option } from 'effect';
 import { Command } from 'effect/unstable/cli';
 
 import { pollUntilComplete } from '../api/poll';
-import {
-	exchangeDeviceToken,
-	startDeviceAuthorization,
-} from '../auth/client';
+import { exchangeDeviceToken, startDeviceAuthorization } from '../auth/client';
 import { apiBaseUrl, storeSession } from '../auth/session';
 import { openBrowser } from '../auth/util';
 
@@ -44,8 +41,7 @@ const login = Effect.gen(function* () {
 				})
 			),
 			Effect.catchTags({
-				DeviceAuthorizationPending: () =>
-					Effect.succeed(Option.none()),
+				DeviceAuthorizationPending: () => Effect.succeed(Option.none()),
 				DeviceAuthorizationSlowDown: () =>
 					Effect.succeed(Option.none()),
 			})

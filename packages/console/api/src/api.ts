@@ -1,3 +1,4 @@
+import { DbError } from '@hem/console-core/database/database';
 import { ManagedConnectorSchema } from '@hem/core/connector';
 import { Schema } from 'effect';
 import {
@@ -5,8 +6,6 @@ import {
 	HttpApiEndpoint,
 	HttpApiGroup,
 } from 'effect/unstable/httpapi';
-
-import { DbError } from '@hem/console-core/database/database';
 
 import { ConnectorError } from './connectors/types';
 import {

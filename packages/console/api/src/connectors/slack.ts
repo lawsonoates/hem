@@ -5,6 +5,7 @@ import {
 	HttpClient,
 	HttpClientRequest,
 } from 'effect/unstable/http';
+
 import {
 	issueOAuthCredential,
 	permissionsFromScope,
@@ -120,9 +121,7 @@ export const layer = Layer.effect(
 
 		const issueCredential = Effect.fn('SlackConnector.issueCredential')(
 			(
-				input: Parameters<
-					ManagedConnectorService['issueCredential']
-				>[0]
+				input: Parameters<ManagedConnectorService['issueCredential']>[0]
 			) =>
 				issueOAuthCredential({
 					connector: 'slack',

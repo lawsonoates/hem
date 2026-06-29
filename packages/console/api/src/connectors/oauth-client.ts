@@ -1,11 +1,9 @@
 import type { ProviderCredentials } from '@hem/core/connector';
 import { CONNECTOR_DEFAULT_OUTPUTS } from '@hem/core/connector';
 import type { ManagedConnector, OAuthConnector } from '@hem/core/connector';
-import { Clock, Config, Effect, Option, Redacted, Schema } from 'effect';
-import {
-	HttpClient,
-	HttpClientResponse,
-} from 'effect/unstable/http';
+import type { Schema } from 'effect';
+import { Clock, Config, Effect, Option, Redacted } from 'effect';
+import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
 import type { HttpClientRequest } from 'effect/unstable/http';
 
 import { ConnectorError } from './types';
@@ -55,8 +53,7 @@ export const expiresAtFromSeconds = (seconds: number) =>
 export const connectorCallbackUrl = (
 	publicApiUrl: string,
 	connector: ManagedConnector
-) =>
-	new URL(`/v1/connectors/${connector}/callback`, publicApiUrl).toString();
+) => new URL(`/v1/connectors/${connector}/callback`, publicApiUrl).toString();
 
 export const optionalString = (key: string) =>
 	Config.option(Config.string(key));
@@ -125,9 +122,7 @@ export const readProviderSchema = <A>(input: {
 	readonly schema: ServiceFreeSchema<A>;
 }) =>
 	Effect.gen(function* () {
-		const client = input.client.pipe(
-			HttpClient.filterStatusOk
-		);
+		const client = input.client.pipe(HttpClient.filterStatusOk);
 		const response = yield* client.execute(input.request).pipe(
 			Effect.mapError(
 				(cause) =>

@@ -41,36 +41,30 @@ export const layer = Layer.effect(
 						'github',
 						input.callback
 					);
-				const completed = yield* githubConnector
-					.completeInstallation(providerInstallationId);
+				const completed = yield* githubConnector.completeInstallation(
+					providerInstallationId
+				);
 				return {
 					account: completed.account,
 					credentials: null,
 					grantedPermissions: completed.grantedPermissions,
-					providerInstallationId:
-						completed.providerInstallationId,
+					providerInstallationId: completed.providerInstallationId,
 				} satisfies CompletedConnectorInstallation;
 			}),
 			connector: 'github' as const,
 			createAuthorizationUrl: Effect.fn(
 				'ConnectorRegistry.github.createAuthorizationUrl'
 			)((state: string) =>
-				Effect.succeed(
-					githubConnector.createInstallationUrl(state)
-				)
+				Effect.succeed(githubConnector.createInstallationUrl(state))
 			),
 			issueCredential: Effect.fn(
 				'ConnectorRegistry.github.issueCredential'
 			)(function* (
-				input: Parameters<
-					ManagedConnectorService['issueCredential']
-				>[0]
+				input: Parameters<ManagedConnectorService['issueCredential']>[0]
 			) {
-				const credential = yield* githubConnector
-					.issueCredential({
-						providerInstallationId:
-							input.providerInstallationId,
-					});
+				const credential = yield* githubConnector.issueCredential({
+					providerInstallationId: input.providerInstallationId,
+				});
 				return {
 					expiresAt: credential.expiresAt,
 					values: { GITHUB_TOKEN: credential.token },
@@ -107,9 +101,7 @@ const ConnectorLayers = Layer.mergeAll(
 	VercelConnector.defaultLayer
 );
 
-export const defaultLayer = layer.pipe(
-	Layer.provide(ConnectorLayers)
-);
+export const defaultLayer = layer.pipe(Layer.provide(ConnectorLayers));
 
 // oxlint-disable-next-line import/no-self-import, oxc/no-barrel-file -- namespace projection for Effect service module
 export * as ConnectorRegistry from './registry';

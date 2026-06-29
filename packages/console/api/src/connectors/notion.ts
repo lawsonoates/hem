@@ -5,6 +5,7 @@ import {
 	HttpClient,
 	HttpClientRequest,
 } from 'effect/unstable/http';
+
 import {
 	issueOAuthCredential,
 	permissionsFromScope,
@@ -99,9 +100,7 @@ export const layer = Layer.effect(
 					return {
 						account: {
 							id: response.workspace_id,
-							name:
-								response.workspace_name ??
-								'Notion workspace',
+							name: response.workspace_name ?? 'Notion workspace',
 							type: 'workspace' as const,
 						},
 						credentials: tokenCredentials({
@@ -116,13 +115,14 @@ export const layer = Layer.effect(
 				})
 		);
 
-		const issueCredential = Effect.fn(
-			'NotionConnector.issueCredential'
-		)((input: Parameters<ManagedConnectorService['issueCredential']>[0]) =>
-			issueOAuthCredential({
-				connector: 'notion',
-				credentials: input.credentials,
-			})
+		const issueCredential = Effect.fn('NotionConnector.issueCredential')(
+			(
+				input: Parameters<ManagedConnectorService['issueCredential']>[0]
+			) =>
+				issueOAuthCredential({
+					connector: 'notion',
+					credentials: input.credentials,
+				})
 		);
 
 		return Service.of({

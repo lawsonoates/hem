@@ -1,5 +1,6 @@
 import { Database } from '@hem/console-core/database/database';
-import { Effect, Layer, ManagedRuntime } from 'effect';
+import type { Effect } from 'effect';
+import { Layer, ManagedRuntime } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';

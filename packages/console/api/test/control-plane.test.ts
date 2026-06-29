@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 
-import { Installation as InstallationCore } from '@hem/console-core/installation';
 import { Database } from '@hem/console-core/database/database';
 import { user } from '@hem/console-core/database/schema/auth';
+import { Installation as InstallationCore } from '@hem/console-core/installation';
 import type { ManagedConnector } from '@hem/core/connector';
 import { Effect, Layer } from 'effect';
 
@@ -114,12 +114,10 @@ const ConnectorRegistryTest = Layer.succeed(
 	ConnectorRegistry.Service.of({
 		get: (connector) => {
 			const service =
-				connectorRegistry[
-					connector as keyof typeof connectorRegistry
-				];
-			if (!service) {
+				connectorRegistry[connector as keyof typeof connectorRegistry];
+			if (!service)
 				return Effect.die(`Unexpected connector: ${connector}`);
-			}
+
 			return Effect.succeed(service);
 		},
 	})

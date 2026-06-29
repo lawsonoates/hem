@@ -40,6 +40,7 @@ export default defineConfig({
 		],
 		'func-style': 'off',
 		'import/no-relative-parent-imports': 'off',
+		'import/no-self-import': 'off',
 		'max-classes-per-file': 'off',
 		'max-statements': 'off',
 		'no-inner-declarations': 'off',

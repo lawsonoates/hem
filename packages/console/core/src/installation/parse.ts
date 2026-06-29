@@ -1,10 +1,12 @@
 import {
 	parseProviderAccount,
 	parseProviderCredentials,
-	type ManagedConnector,
-	type ProviderAccount,
-	type ProviderAccountType,
-	type ProviderCredentials,
+} from '@hem/core/connector';
+import type {
+	ManagedConnector,
+	ProviderAccount,
+	ProviderAccountType,
+	ProviderCredentials,
 } from '@hem/core/connector';
 import { Effect } from 'effect';
 

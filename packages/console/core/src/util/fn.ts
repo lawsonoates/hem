@@ -1,10 +1,10 @@
 import { Effect, Schema } from 'effect';
 
-type Fn<A, R, E, Req> = {
+interface Fn<A, R, E, Req> {
 	(input: unknown): Effect.Effect<R, E | Schema.SchemaError, Req>;
 	force: (input: A) => Effect.Effect<R, E, Req>;
 	schema: Schema.Schema<A>;
-};
+}
 
 export const fn = <A, R, E, Req>(
 	schema: Schema.Schema<A>,

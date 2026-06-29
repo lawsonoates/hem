@@ -1,5 +1,8 @@
 import { BindingId, CreateBindingRequest } from '@hem/console-api/schema';
-import { CONNECTOR_POSSIBLE_OUTPUTS, CONNECTOR_LABELS } from '@hem/core/connector';
+import {
+	CONNECTOR_POSSIBLE_OUTPUTS,
+	CONNECTOR_LABELS,
+} from '@hem/core/connector';
 import type { ManagedConnector } from '@hem/core/connector';
 import { HemError } from '@hem/core/error';
 import { Console, Effect, Option } from 'effect';

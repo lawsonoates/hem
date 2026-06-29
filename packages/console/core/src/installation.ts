@@ -90,54 +90,41 @@ export namespace InstallationRequest {
 			})
 	);
 
-	export const poll = fn(
-		InstallationRequestPoll,
-		({ ownerId, state }) =>
-			Effect.gen(function* () {
-				const { db } = yield* Database.Service;
-				return yield* Effect.try({
-					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db.transaction(
-							(transaction): InstallationPollResult => {
-								const request = transaction
-									.select()
-									.from(InstallationRequestTable)
-									.where(
-										and(
-											eq(
-												InstallationRequestTable.state,
-												state
-											),
-											eq(
-												InstallationRequestTable.ownerId,
-												ownerId
-											)
-										)
+	export const poll = fn(InstallationRequestPoll, ({ ownerId, state }) =>
+		Effect.gen(function* () {
+			const { db } = yield* Database.Service;
+			return yield* Effect.try({
+				catch: (cause) => new DbError({ cause }),
+				try: () =>
+					db.transaction((transaction): InstallationPollResult => {
+						const request = transaction
+							.select()
+							.from(InstallationRequestTable)
+							.where(
+								and(
+									eq(InstallationRequestTable.state, state),
+									eq(
+										InstallationRequestTable.ownerId,
+										ownerId
 									)
-									.get();
-								if (!request || request.expiresAt <= new Date())
-									return { _tag: 'Invalid' };
+								)
+							)
+							.get();
+						if (!request || request.expiresAt <= new Date())
+							return { _tag: 'Invalid' };
 
-								if (!request.installationId)
-									return { _tag: 'Pending' };
-								transaction
-									.delete(InstallationRequestTable)
-									.where(
-										eq(
-											InstallationRequestTable.id,
-											request.id
-										)
-									)
-									.run();
-								return {
-									_tag: 'Complete',
-									installationId: request.installationId,
-								};
-							}
-						),
-				});
-			})
+						if (!request.installationId) return { _tag: 'Pending' };
+						transaction
+							.delete(InstallationRequestTable)
+							.where(eq(InstallationRequestTable.id, request.id))
+							.run();
+						return {
+							_tag: 'Complete',
+							installationId: request.installationId,
+						};
+					}),
+			});
+		})
 	);
 }
 
@@ -214,9 +201,7 @@ export namespace Installation {
 						})
 						.returning()
 						.get(),
-			}).pipe(
-				Effect.flatMap((row) => parseInstallationRow(row))
-			);
+			}).pipe(Effect.flatMap((row) => parseInstallationRow(row)));
 		})
 	);
 
@@ -248,9 +233,7 @@ export namespace Installation {
 							.where(eq(InstallationTable.id, values.id))
 							.returning()
 							.get(),
-				}).pipe(
-					Effect.flatMap((row) => parseInstallationRow(row))
-				);
+				}).pipe(Effect.flatMap((row) => parseInstallationRow(row)));
 			})
 	);
 }

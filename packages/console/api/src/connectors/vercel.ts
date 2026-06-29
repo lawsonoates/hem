@@ -5,6 +5,8 @@ import {
 	HttpClient,
 	HttpClientRequest,
 } from 'effect/unstable/http';
+
+import { randomUuid } from '../prelude/id';
 import {
 	issueOAuthCredential,
 	optionalString,
@@ -15,13 +17,9 @@ import {
 	readProviderSchema,
 	tokenCredentials,
 } from './oauth-client';
-import { randomUuid } from '../prelude/id';
 import { VercelTokenResponse } from './schemas';
 import { ConnectorError, requireOAuthCode } from './types';
-import type {
-	ConnectorAccount,
-	ManagedConnectorService,
-} from './types';
+import type { ConnectorAccount, ManagedConnectorService } from './types';
 
 export type Interface = ManagedConnectorService;
 
@@ -36,9 +34,8 @@ export const layer = Layer.effect(
 		const createVercelInstallUrl = Effect.fn(
 			'VercelConnector.createInstallUrl'
 		)(function* (state: string, redirectUri: string) {
-			const explicitTemplate = yield* optionalString(
-				'VERCEL_INSTALL_URL'
-			);
+			const explicitTemplate =
+				yield* optionalString('VERCEL_INSTALL_URL');
 			const template = Option.isSome(explicitTemplate)
 				? explicitTemplate.value
 				: `https://vercel.com/integrations/${yield* Config.string(
@@ -155,9 +152,7 @@ export const layer = Layer.effect(
 
 		const issueCredential = Effect.fn('VercelConnector.issueCredential')(
 			(
-				input: Parameters<
-					ManagedConnectorService['issueCredential']
-				>[0]
+				input: Parameters<ManagedConnectorService['issueCredential']>[0]
 			) =>
 				issueOAuthCredential({
 					connector: 'vercel',

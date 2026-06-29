@@ -2,14 +2,14 @@ import { Effect } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
 import { HemApi } from '../api';
+import { ConnectorError } from '../connectors/types';
+import { BadRequest } from '../errors';
 import {
 	callbackFromQuery,
 	completeConnectorInstallation,
 	getConnectorInstallationStatus,
 	startConnectorInstallation,
 } from '../installation/flow';
-import { ConnectorError } from '../connectors/types';
-import { BadRequest } from '../errors';
 import { CurrentUser } from '../middleware/auth';
 
 export const InstallationLive = HttpApiBuilder.group(

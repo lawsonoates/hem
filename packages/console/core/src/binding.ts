@@ -11,18 +11,14 @@ const BindingCreate = Schema.Struct({
 
 export namespace Binding {
 	export const create = fn(BindingCreate, (values) =>
-			Effect.gen(function* () {
-				const { db } = yield* Database.Service;
-				return yield* Effect.try({
-					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db
-							.insert(BindingTable)
-							.values(values)
-							.returning()
-							.get(),
-				});
-			})
+		Effect.gen(function* () {
+			const { db } = yield* Database.Service;
+			return yield* Effect.try({
+				catch: (cause) => new DbError({ cause }),
+				try: () =>
+					db.insert(BindingTable).values(values).returning().get(),
+			});
+		})
 	);
 
 	export const fromId = fn(Schema.String, (id) =>

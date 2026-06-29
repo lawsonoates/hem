@@ -4,7 +4,9 @@ import type {
 	ProviderCredentials,
 } from '@hem/core/connector';
 import { ManagedConnectorSchema } from '@hem/core/connector';
-import { Config, Effect, Schema } from 'effect';
+import type { Config } from 'effect';
+import { Effect, Schema } from 'effect';
+
 import type { GithubConnectorError } from './github';
 
 export type ConnectorOutputs = readonly [string, ...string[]];
@@ -73,10 +75,7 @@ export interface ManagedConnectorService {
 	) => Effect.Effect<string, ManagedConnectorServiceError>;
 	readonly issueCredential: (
 		input: IssueConnectorCredentialInput
-	) => Effect.Effect<
-		ConnectorCredentialLease,
-		ManagedConnectorServiceError
-	>;
+	) => Effect.Effect<ConnectorCredentialLease, ManagedConnectorServiceError>;
 	readonly outputsForInstallation: (
 		account: ConnectorAccount
 	) => ConnectorOutputs;

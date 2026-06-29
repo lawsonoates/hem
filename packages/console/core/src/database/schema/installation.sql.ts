@@ -1,15 +1,18 @@
-import {
-	MANAGED_CONNECTORS,
-	type ManagedConnector,
-	type ProviderAccountType,
-	type ProviderCredentials,
+import { MANAGED_CONNECTORS } from '@hem/core/connector';
+import type {
+	ManagedConnector,
+	ProviderAccountType,
+	ProviderCredentials,
 } from '@hem/core/connector';
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 import { user } from './auth.sql';
 import { id, timestamps } from './utils';
 
-export type { ManagedConnector, ProviderCredentials } from '@hem/core/connector';
+export type {
+	ManagedConnector,
+	ProviderCredentials,
+} from '@hem/core/connector';
 
 export interface ProviderAccount {
 	readonly id: string;
