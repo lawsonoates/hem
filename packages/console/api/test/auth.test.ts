@@ -1,51 +1,16 @@
-import { Database } from 'bun:sqlite';
-import { afterAll, expect, test } from 'bun:test';
+import { afterAll, beforeAll, expect, test } from 'bun:test';
 
 import { Database as HemDatabase } from '@hem/console-core/database/database';
-import * as authSchema from '@hem/console-core/database/schema/auth';
-import * as bindingSchema from '@hem/console-core/database/schema/binding';
-import * as installationSchema from '@hem/console-core/database/schema/installation';
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, deviceAuthorization } from 'better-auth/plugins';
-import { drizzle } from 'drizzle-orm/bun-sqlite';
-import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import { ConfigProvider, Effect, Layer } from 'effect';
 import { HttpRouter } from 'effect/unstable/http';
 
-import { HemAuth } from '../src/auth';
+import { HemAuth, makeBetterAuth } from '../src/auth';
 import { ConnectorRegistry } from '../src/connectors/registry';
-import { HttpRoutesLayer } from '../src/effect/app-runtime';
+import { HttpRoutesLayer, makeRuntime } from '../src/effect/app-runtime';
 
-const databasePath = `${import.meta.dir}/auth.test.db`;
 const publicUrl = 'http://127.0.0.1:3000';
-const sqlite = new Database(databasePath, { create: true });
-const database = drizzle(sqlite, {
-	schema: { ...authSchema, ...bindingSchema, ...installationSchema },
-});
-const migrationsFolder = decodeURIComponent(
-	new URL('../../core/src/database/migrations', import.meta.url).pathname
-);
-migrate(database, { migrationsFolder });
-sqlite.close();
-
-const testAuth = betterAuth({
-	basePath: '/v1/auth',
-	baseURL: publicUrl,
-	database: drizzleAdapter(
-		drizzle(new Database(databasePath), { schema: authSchema }),
-		{ provider: 'sqlite' }
-	),
-	emailAndPassword: { enabled: true },
-	plugins: [
-		bearer(),
-		deviceAuthorization({
-			schema: {},
-			verificationUri: new URL('/device', publicUrl).toString(),
-		}),
-	],
-	secret: 'this-is-a-test-secret-with-at-least-32-characters',
-});
+let authRuntime: { readonly dispose: () => Promise<void> };
+let testAuth: ReturnType<typeof makeBetterAuth>;
 
 const ConnectorRegistryTest = Layer.succeed(
 	ConnectorRegistry.Service,
@@ -59,6 +24,23 @@ const cookieHeader = (response: Response) =>
 		.getSetCookie()
 		.map((cookie) => cookie.split(';', 1)[0])
 		.join('; ');
+
+beforeAll(async () => {
+	const runtime = makeRuntime(HemDatabase.testLayer);
+	authRuntime = runtime;
+	const database = await runtime.runPromise(
+		Effect.map(HemDatabase.Service, ({ db }) => db)
+	);
+	testAuth = makeBetterAuth({
+		baseURL: publicUrl,
+		database,
+		secret: 'this-is-a-test-secret-with-at-least-32-characters',
+	});
+});
+
+afterAll(async () => {
+	await authRuntime.dispose();
+});
 
 test('creates a Hem account with email and password', async () => {
 	const response = await testAuth.handler(
@@ -101,10 +83,6 @@ test('does not configure GitHub as an authentication provider', async () => {
 	expect(response.status).toBe(404);
 });
 
-afterAll(() => {
-	Bun.file(databasePath).delete();
-});
-
 test('issues and polls a Better Auth device authorization', async () => {
 	const authorization = await testAuth.handler(
 		new Request('http://127.0.0.1:3000/v1/auth/device/code', {
@@ -138,20 +116,17 @@ test('issues and polls a Better Auth device authorization', async () => {
 });
 
 test('preserves browser session cookies when approving a device request', async () => {
-	const apiDatabasePath = `${import.meta.dir}/auth-api.${crypto.randomUUID()}.db`;
 	const configLayer = ConfigProvider.layer(
 		ConfigProvider.fromUnknown({
 			BETTER_AUTH_SECRET:
 				'this-is-a-test-secret-with-at-least-32-characters',
 			HEM_API_URL: publicUrl,
-			HEM_DATABASE_PATH: apiDatabasePath,
 		})
 	);
 	const servicesLayer = Layer.mergeAll(
-		HemDatabase.layerFromPath(apiDatabasePath),
 		HemAuth.defaultLayer,
 		ConnectorRegistryTest
-	);
+	).pipe(Layer.provideMerge(HemDatabase.testLayer));
 	const appLayer = HttpRoutesLayer.pipe(
 		Layer.provide(servicesLayer),
 		Layer.provide(configLayer)
@@ -234,16 +209,5 @@ test('preserves browser session cookies when approving a device request', async 
 		});
 	} finally {
 		await dispose();
-		await Promise.all(
-			[
-				apiDatabasePath,
-				`${apiDatabasePath}-shm`,
-				`${apiDatabasePath}-wal`,
-			].map((path) =>
-				Bun.file(path)
-					.delete()
-					.catch(() => false)
-			)
-		);
 	}
 });

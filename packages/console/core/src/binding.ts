@@ -13,25 +13,35 @@ export namespace Binding {
 	export const create = fn(BindingCreate, (values) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db.insert(BindingTable).values(values).returning().get(),
+				try: async () =>
+					(
+						await db.insert(BindingTable).values(values).returning()
+					)[0],
 			});
+			if (!row)
+				{return yield* Effect.fail(
+					new DbError({
+						cause: new Error('Binding insert returned no row.'),
+					})
+				);}
+			return row;
 		})
 	);
 
 	export const fromId = fn(Schema.String, (id) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			return yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.select()
-						.from(BindingTable)
-						.where(eq(BindingTable.id, id))
-						.get(),
+				try: async () =>
+					(
+						await db
+							.select()
+							.from(BindingTable)
+							.where(eq(BindingTable.id, id))
+					)[0],
 			});
 		})
 	);

@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 
-import { Database } from 'bun:sqlite';
-
 import * as authSchema from '@hem/console-core/database/schema/auth';
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, deviceAuthorization } from 'better-auth/plugins';
+import * as bindingSchema from '@hem/console-core/database/schema/binding';
+import * as installationSchema from '@hem/console-core/database/schema/installation';
+import { SQL } from 'bun';
 import { eq } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/bun-sqlite';
-import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
+import { drizzle } from 'drizzle-orm/bun-sql';
+import { migrate } from 'drizzle-orm/bun-sql/migrator';
+
+import { makeBetterAuth } from '../src/auth';
 
 // ---- guard ----
 if (process.env.NODE_ENV !== 'development') {
@@ -17,23 +17,21 @@ if (process.env.NODE_ENV !== 'development') {
 }
 
 // ---- config ----
-const packageRoot = decodeURIComponent(
-	new URL('../', import.meta.url).pathname
-);
 const migrationsFolder = decodeURIComponent(
 	new URL('../../core/src/database/migrations', import.meta.url).pathname
 );
-const databasePath = process.env.HEM_DATABASE_PATH
-	? (() => {
-			if (process.env.HEM_DATABASE_PATH.startsWith('/'))
-				return process.env.HEM_DATABASE_PATH;
-			return `${process.cwd()}/${process.env.HEM_DATABASE_PATH}`;
-		})()
-	: `${packageRoot}hem.db`;
+const databaseUrl = process.env.HEM_DATABASE_URL;
 const apiUrl = process.env.HEM_API_URL ?? 'http://127.0.0.1:3000';
 const secret =
 	process.env.BETTER_AUTH_SECRET ??
 	'hem-development-secret-with-at-least-32-chars';
+
+if (!databaseUrl) {
+	console.error(
+		'HEM_DATABASE_URL is required for the Postgres API database.'
+	);
+	process.exit(1);
+}
 
 const seedUser = {
 	email: process.env.HEM_DEV_SEED_EMAIL ?? 'dev@hem.local',
@@ -50,36 +48,25 @@ const legacyConnectorFixtures = [
 ] as const;
 
 // ---- prepare ----
-const sqlite = new Database(databasePath, { create: true });
-sqlite.run('PRAGMA journal_mode = WAL');
-sqlite.run('PRAGMA foreign_keys = ON');
+const sql = new SQL({ url: databaseUrl });
+const db = drizzle(sql, {
+	schema: { ...authSchema, ...bindingSchema, ...installationSchema },
+});
+await migrate(db, { migrationsFolder });
 
-const db = drizzle(sqlite, { schema: authSchema });
-migrate(db, { migrationsFolder });
-
-const auth = betterAuth({
-	basePath: '/v1/auth',
+const auth = makeBetterAuth({
 	baseURL: apiUrl,
-	database: drizzleAdapter(drizzle(sqlite, { schema: authSchema }), {
-		provider: 'sqlite',
-	}),
-	emailAndPassword: { enabled: true },
-	plugins: [
-		bearer(),
-		deviceAuthorization({
-			schema: {},
-			verificationUri: new URL('/device', apiUrl).toString(),
-		}),
-	],
+	database: db,
 	secret,
 });
 
 // ---- seed user ----
-let user = db
-	.select()
-	.from(authSchema.user)
-	.where(eq(authSchema.user.email, seedUser.email))
-	.get();
+let user = (
+	await db
+		.select()
+		.from(authSchema.user)
+		.where(eq(authSchema.user.email, seedUser.email))
+)[0];
 
 if (!user) {
 	const response = await auth.handler(
@@ -95,11 +82,12 @@ if (!user) {
 		);
 		process.exit(1);
 	}
-	user = db
-		.select()
-		.from(authSchema.user)
-		.where(eq(authSchema.user.email, seedUser.email))
-		.get();
+	user = (
+		await db
+			.select()
+			.from(authSchema.user)
+			.where(eq(authSchema.user.email, seedUser.email))
+	)[0];
 }
 
 if (!user) {
@@ -109,17 +97,19 @@ if (!user) {
 
 // ---- clean legacy fixtures ----
 for (const connector of legacyConnectorFixtures) {
-	sqlite
-		.query('delete from binding where id = ?')
-		.run(`bind_dev_${connector}`);
-	sqlite
-		.query('delete from installation where id = ?')
-		.run(`ins_dev_${connector}`);
+	await db
+		.delete(bindingSchema.BindingTable)
+		.where(eq(bindingSchema.BindingTable.id, `bind_dev_${connector}`));
+	await db
+		.delete(installationSchema.InstallationTable)
+		.where(
+			eq(installationSchema.InstallationTable.id, `ins_dev_${connector}`)
+		);
 }
 
-sqlite.close();
+await sql.close();
 
 // ---- done ----
-console.log(`Seeded Hem dev database: ${databasePath}`);
+console.log('Seeded Hem dev database.');
 console.log(`User: ${seedUser.email}`);
 console.log(`Password: ${seedUser.password}`);

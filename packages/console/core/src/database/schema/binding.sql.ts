@@ -1,9 +1,9 @@
-import { index, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, pgTable, text } from 'drizzle-orm/pg-core';
 
 import { InstallationTable } from './installation.sql';
 import { id, timestamps } from './utils';
 
-export const BindingTable = sqliteTable(
+export const BindingTable = pgTable(
 	'binding',
 	{
 		id: id('bind'),

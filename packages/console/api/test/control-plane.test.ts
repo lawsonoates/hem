@@ -123,10 +123,7 @@ const ConnectorRegistryTest = Layer.succeed(
 	})
 );
 
-const TestLayer = Layer.mergeAll(
-	Database.layerFromPath(':memory:'),
-	ConnectorRegistryTest
-);
+const TestLayer = Layer.mergeAll(Database.testLayer, ConnectorRegistryTest);
 
 const testRuntime = makeRuntime(TestLayer);
 
@@ -222,10 +219,7 @@ test('completes a Notion OAuth installation through the flow seam', async () => 
 
 test('persists refreshed OAuth credentials when issuing a lease', async () => {
 	const isolatedRuntime = makeRuntime(
-		Layer.mergeAll(
-			Database.layerFromPath(`:memory:${crypto.randomUUID()}`),
-			ConnectorRegistryTest
-		)
+		Layer.mergeAll(Database.testLayer, ConnectorRegistryTest)
 	);
 	const result = await isolatedRuntime.runPromise(
 		Effect.gen(function* () {

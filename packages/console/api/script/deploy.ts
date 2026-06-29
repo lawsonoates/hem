@@ -19,6 +19,7 @@ const missingEnvironment = [
 	!githubPrivateKey &&
 		'GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH',
 	!process.env.GITHUB_APP_SLUG && 'GITHUB_APP_SLUG',
+	!process.env.HEM_DATABASE_URL && 'HEM_DATABASE_URL',
 ].filter(Boolean);
 
 if (missingEnvironment.length > 0) {
@@ -36,7 +37,7 @@ const deploymentEnvironment = {
 	GITHUB_APP_PRIVATE_KEY: githubPrivateKey as string,
 	GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG as string,
 	HEM_API_URL: publicUrl,
-	HEM_DATABASE_PATH: `${remoteRoot}/data/hem.db`,
+	HEM_DATABASE_URL: process.env.HEM_DATABASE_URL as string,
 	HOST: '0.0.0.0',
 	NODE_ENV: 'production',
 	PORT: '80',

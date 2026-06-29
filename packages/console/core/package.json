@@ -25,6 +25,7 @@
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@electric-sql/pglite": "^0.4.5",
 		"@tsconfig/bun": "catalog:",
 		"@types/bun": "catalog:",
 		"@typescript/native-preview": "catalog:",

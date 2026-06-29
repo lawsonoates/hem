@@ -10,10 +10,9 @@ import { AuthorizationLive } from '../middleware/auth';
 import { HandlersLive } from '../routes';
 
 export const ServicesLayer = Layer.mergeAll(
-	Database.defaultLayer,
 	ConnectorRegistry.defaultLayer,
 	HemAuth.defaultLayer
-);
+).pipe(Layer.provideMerge(Database.defaultLayer));
 
 export const ApiLayer = HttpApiBuilder.layer(HemApi).pipe(
 	Layer.provide(HandlersLive),

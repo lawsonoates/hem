@@ -30,6 +30,13 @@ if (!process.env.GITHUB_APP_PRIVATE_KEY && !(await privateKeyFile.exists())) {
 	process.exit(1);
 }
 
+if (!process.env.HEM_DATABASE_URL) {
+	console.error(
+		'HEM_DATABASE_URL is required for the Postgres API database.'
+	);
+	process.exit(1);
+}
+
 const tunnelList = Bun.spawnSync(
 	['cloudflared', 'tunnel', 'list', '--name', tunnelName, '--output', 'json'],
 	{
@@ -57,7 +64,7 @@ const environment = {
 		process.env.GITHUB_APP_PRIVATE_KEY ?? (await privateKeyFile.text()),
 	GITHUB_APP_SLUG: process.env.GITHUB_APP_SLUG ?? 'hemdevtemp',
 	HEM_API_URL: publicUrl,
-	HEM_DATABASE_PATH: process.env.HEM_DATABASE_PATH ?? 'hem.db',
+	HEM_DATABASE_URL: process.env.HEM_DATABASE_URL,
 	NODE_ENV: 'development',
 	PORT: '3000',
 };

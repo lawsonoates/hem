@@ -4,7 +4,7 @@ import type {
 	ProviderAccountType,
 	ProviderCredentials,
 } from '@hem/core/connector';
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth.sql';
 import { id, timestamps } from './utils';
@@ -22,23 +22,17 @@ export interface ProviderAccount {
 
 export type ConnectorPermissions = Readonly<Record<string, string>>;
 
-export const InstallationTable = sqliteTable(
+export const InstallationTable = pgTable(
 	'installation',
 	{
-		account: text('account', { mode: 'json' })
-			.$type<ProviderAccount>()
-			.notNull(),
+		account: jsonb('account').$type<ProviderAccount>().notNull(),
 		connector: text('connector', {
 			enum: MANAGED_CONNECTORS as unknown as [string, ...string[]],
 		})
 			.$type<ManagedConnector>()
 			.notNull(),
-		credentials: text('credentials', {
-			mode: 'json',
-		}).$type<ProviderCredentials | null>(),
-		grantedPermissions: text('granted_permissions', {
-			mode: 'json',
-		})
+		credentials: jsonb('credentials').$type<ProviderCredentials | null>(),
+		grantedPermissions: jsonb('granted_permissions')
 			.$type<ConnectorPermissions>()
 			.notNull(),
 		id: id('ins'),
@@ -53,10 +47,10 @@ export const InstallationTable = sqliteTable(
 	(table) => [index('installation_owner_id_idx').on(table.ownerId)]
 );
 
-export const InstallationRequestTable = sqliteTable(
+export const InstallationRequestTable = pgTable(
 	'installation_request',
 	{
-		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 		id: id('install'),
 		installationId: text('installation_id').references(
 			() => InstallationTable.id,

@@ -38,38 +38,52 @@ export namespace InstallationRequest {
 	export const create = fn(InstallationRequestCreate, (values) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.insert(InstallationRequestTable)
-						.values(values)
-						.returning()
-						.get(),
+				try: async () =>
+					(
+						await db
+							.insert(InstallationRequestTable)
+							.values(values)
+							.returning()
+					)[0],
 			});
+			if (!row)
+				{return yield* Effect.fail(
+					new DbError({
+						cause: new Error(
+							'Installation request insert returned no row.'
+						),
+					})
+				);}
+			return row;
 		})
 	);
 
 	export const owner = fn(Schema.String, (state) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.select({ ownerId: InstallationRequestTable.ownerId })
-						.from(InstallationRequestTable)
-						.where(
-							and(
-								eq(InstallationRequestTable.state, state),
-								gt(
-									InstallationRequestTable.expiresAt,
-									new Date()
+				try: async () =>
+					(
+						await db
+							.select({
+								ownerId: InstallationRequestTable.ownerId,
+							})
+							.from(InstallationRequestTable)
+							.where(
+								and(
+									eq(InstallationRequestTable.state, state),
+									gt(
+										InstallationRequestTable.expiresAt,
+										new Date()
+									)
 								)
 							)
-						)
-						.get()?.ownerId,
+					)[0]?.ownerId,
 			});
+			return row;
 		})
 	);
 
@@ -78,14 +92,15 @@ export namespace InstallationRequest {
 		({ installationId, state }) =>
 			Effect.gen(function* () {
 				const { db } = yield* Database.Service;
-				return yield* Effect.try({
+				return yield* Effect.tryPromise({
 					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db
+					try: async () => {
+						await db
 							.update(InstallationRequestTable)
 							.set({ installationId })
 							.where(eq(InstallationRequestTable.state, state))
-							.run(),
+							.execute();
+					},
 				});
 			})
 	);
@@ -93,36 +108,47 @@ export namespace InstallationRequest {
 	export const poll = fn(InstallationRequestPoll, ({ ownerId, state }) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			return yield* Effect.try({
+			return yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
 				try: () =>
-					db.transaction((transaction): InstallationPollResult => {
-						const request = transaction
-							.select()
-							.from(InstallationRequestTable)
-							.where(
-								and(
-									eq(InstallationRequestTable.state, state),
-									eq(
-										InstallationRequestTable.ownerId,
-										ownerId
+					db.transaction(
+						async (
+							transaction
+						): Promise<InstallationPollResult> => {
+							const request = (
+								await transaction
+									.select()
+									.from(InstallationRequestTable)
+									.where(
+										and(
+											eq(
+												InstallationRequestTable.state,
+												state
+											),
+											eq(
+												InstallationRequestTable.ownerId,
+												ownerId
+											)
+										)
 									)
-								)
-							)
-							.get();
-						if (!request || request.expiresAt <= new Date())
-							return { _tag: 'Invalid' };
+							)[0];
+							if (!request || request.expiresAt <= new Date())
+								return { _tag: 'Invalid' };
 
-						if (!request.installationId) return { _tag: 'Pending' };
-						transaction
-							.delete(InstallationRequestTable)
-							.where(eq(InstallationRequestTable.id, request.id))
-							.run();
-						return {
-							_tag: 'Complete',
-							installationId: request.installationId,
-						};
-					}),
+							if (!request.installationId)
+								return { _tag: 'Pending' };
+							await transaction
+								.delete(InstallationRequestTable)
+								.where(
+									eq(InstallationRequestTable.id, request.id)
+								)
+								.execute();
+							return {
+								_tag: 'Complete',
+								installationId: request.installationId,
+							};
+						}
+					),
 			});
 		})
 	);
@@ -132,14 +158,15 @@ export namespace Installation {
 	export const fromId = fn(Schema.String, (id) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			const row = yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.select()
-						.from(InstallationTable)
-						.where(eq(InstallationTable.id, id))
-						.get(),
+				try: async () =>
+					(
+						await db
+							.select()
+							.from(InstallationTable)
+							.where(eq(InstallationTable.id, id))
+					)[0],
 			});
 			if (!row) return;
 			return yield* parseInstallationRow(row);
@@ -149,19 +176,20 @@ export namespace Installation {
 	export const fromProviderId = fn(Schema.String, (providerInstallationId) =>
 		Effect.gen(function* () {
 			const { db } = yield* Database.Service;
-			const row = yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.select()
-						.from(InstallationTable)
-						.where(
-							eq(
-								InstallationTable.providerInstallationId,
-								providerInstallationId
+				try: async () =>
+					(
+						await db
+							.select()
+							.from(InstallationTable)
+							.where(
+								eq(
+									InstallationTable.providerInstallationId,
+									providerInstallationId
+								)
 							)
-						)
-						.get(),
+					)[0],
 			});
 			if (!row) return;
 			return yield* parseInstallationRow(row);
@@ -176,32 +204,43 @@ export namespace Installation {
 						redactProviderCredentials(values.credentials)
 					)
 				: null;
-			return yield* Effect.try({
+			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: () =>
-					db
-						.insert(InstallationTable)
-						.values({
-							account: values.account,
-							connector: values.connector,
-							credentials: persistedCredentials,
-							grantedPermissions: values.grantedPermissions,
-							ownerId: values.ownerId,
-							providerInstallationId:
-								values.providerInstallationId,
-							...(values.id ? { id: values.id } : {}),
-						})
-						.onConflictDoUpdate({
-							set: {
+				try: async () =>
+					(
+						await db
+							.insert(InstallationTable)
+							.values({
 								account: values.account,
+								connector: values.connector,
 								credentials: persistedCredentials,
 								grantedPermissions: values.grantedPermissions,
-							},
-							target: InstallationTable.id,
-						})
-						.returning()
-						.get(),
-			}).pipe(Effect.flatMap((row) => parseInstallationRow(row)));
+								ownerId: values.ownerId,
+								providerInstallationId:
+									values.providerInstallationId,
+								...(values.id ? { id: values.id } : {}),
+							})
+							.onConflictDoUpdate({
+								set: {
+									account: values.account,
+									credentials: persistedCredentials,
+									grantedPermissions:
+										values.grantedPermissions,
+								},
+								target: InstallationTable.id,
+							})
+							.returning()
+					)[0],
+			});
+			if (!row)
+				{return yield* Effect.fail(
+					new DbError({
+						cause: new Error(
+							'Installation insert returned no row.'
+						),
+					})
+				);}
+			return yield* parseInstallationRow(row);
 		})
 	);
 
@@ -216,24 +255,34 @@ export namespace Installation {
 						: persistProviderCredentials(
 								redactProviderCredentials(values.credentials)
 							);
-				return yield* Effect.try({
+				const row = yield* Effect.tryPromise({
 					catch: (cause) => new DbError({ cause }),
-					try: () =>
-						db
-							.update(InstallationTable)
-							.set({
-								credentials: persistedCredentials,
-								...(values.grantedPermissions
-									? {
-											grantedPermissions:
-												values.grantedPermissions,
-										}
-									: {}),
-							})
-							.where(eq(InstallationTable.id, values.id))
-							.returning()
-							.get(),
-				}).pipe(Effect.flatMap((row) => parseInstallationRow(row)));
+					try: async () =>
+						(
+							await db
+								.update(InstallationTable)
+								.set({
+									credentials: persistedCredentials,
+									...(values.grantedPermissions
+										? {
+												grantedPermissions:
+													values.grantedPermissions,
+											}
+										: {}),
+								})
+								.where(eq(InstallationTable.id, values.id))
+								.returning()
+						)[0],
+				});
+				if (!row)
+					{return yield* Effect.fail(
+						new DbError({
+							cause: new Error(
+								'Installation update returned no row.'
+							),
+						})
+					);}
+				return yield* parseInstallationRow(row);
 			})
 	);
 }
