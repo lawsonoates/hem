@@ -1,7 +1,7 @@
 import { SQL } from 'bun';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { migrate } from 'drizzle-orm/bun-sql/migrator';
-import type { PgDatabase } from 'drizzle-orm/pg-core';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import { Config, Context, Effect, Layer, Redacted, Schema } from 'effect';
 
 import * as authSchema from './schema/auth.sql';
@@ -22,7 +22,7 @@ type HemSchema = typeof authSchema &
 	typeof bindingSchema &
 	typeof installationSchema;
 
-export type HemDatabase = PgDatabase<any, HemSchema>;
+export type HemDatabase = PgDatabase<PgQueryResultHKT, HemSchema>;
 
 export interface Interface {
 	readonly db: HemDatabase;
@@ -58,16 +58,19 @@ export const layer = Layer.effect(
 const acquirePglite = (dataDir?: string) =>
 	Effect.acquireRelease(
 		Effect.promise(async () => {
-			const [{ PGlite }, { drizzle: drizzlePglite }, { migrate }] =
-				await Promise.all([
-					import('@electric-sql/pglite'),
-					import('drizzle-orm/pglite'),
-					import('drizzle-orm/pglite/migrator'),
-				]);
+			const [
+				{ PGlite },
+				{ drizzle: drizzlePglite },
+				{ migrate: migratePglite },
+			] = await Promise.all([
+				import('@electric-sql/pglite'),
+				import('drizzle-orm/pglite'),
+				import('drizzle-orm/pglite/migrator'),
+			]);
 			const client = dataDir ? new PGlite(dataDir) : new PGlite();
 			await client.waitReady;
 			const db = drizzlePglite(client, { schema });
-			await migrate(db, { migrationsFolder });
+			await migratePglite(db, { migrationsFolder });
 			return db;
 		}),
 		(db) =>

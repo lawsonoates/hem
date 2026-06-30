@@ -84,7 +84,7 @@ export const InstallationLive = HttpApiBuilder.group(
 					})
 				)
 			)
-			.handle('getConnectorInstallationStatus', ({ params, query }) =>
+			.handle('getConnectorInstallationStatus', ({ query }) =>
 				Effect.gen(function* () {
 					const user = yield* CurrentUser;
 					return yield* getConnectorInstallationStatus(

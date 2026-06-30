@@ -1,5 +1,4 @@
 import { Database } from '@hem/console-core/database/database';
-import type { Effect } from 'effect';
 import { Layer, ManagedRuntime } from 'effect';
 import { HttpApiBuilder } from 'effect/unstable/httpapi';
 
@@ -42,8 +41,7 @@ export const makeRuntime = <R, E>(layer: Layer.Layer<R, E>) => {
 	return {
 		dispose: () => rt.dispose(),
 		runFork: rt.runFork.bind(rt),
-		runPromise: <A, Err>(effect: Effect.Effect<A, Err, any>) =>
-			rt.runPromise(effect),
+		runPromise: rt.runPromise.bind(rt),
 		runPromiseExit: rt.runPromiseExit.bind(rt),
 	};
 };

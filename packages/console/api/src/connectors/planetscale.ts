@@ -110,11 +110,14 @@ export const layer = Layer.effect(
 					const info = yield* tokenInfo(parsed.access_token);
 					const subject = info?.sub ?? (yield* randomUuid);
 					const scope = info?.scope ?? parsed.scope ?? null;
-					const expiresAt = info?.exp
-						? new Date(info.exp * 1000).toISOString()
-						: (parsed.expires_in
-							? yield* expiresAtFromSeconds(parsed.expires_in)
-							: null);
+					let expiresAt = null;
+					if (info?.exp) {
+						expiresAt = new Date(info.exp * 1000).toISOString();
+					} else if (parsed.expires_in) {
+						expiresAt = yield* expiresAtFromSeconds(
+							parsed.expires_in
+						);
+					}
 					return {
 						account: {
 							id: subject,

@@ -29,7 +29,7 @@ export class DeviceAuthorizationSlowDown extends Schema.TaggedErrorClass<DeviceA
 ) {}
 
 const authUrl = (path: string) =>
-	Effect.map(apiBaseUrl, (baseUrl) => new URL(path, baseUrl).toString());
+	apiBaseUrl.pipe(Effect.map((baseUrl) => new URL(path, baseUrl).toString()));
 
 const authErrorMessage = (body: unknown, status: number) => {
 	const decoded = Schema.decodeUnknownOption(AuthErrorBody)(body);

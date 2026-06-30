@@ -87,7 +87,7 @@ const notionConnector = {
 	connector: 'notion' as const,
 	createAuthorizationUrl: (state: string) =>
 		Effect.succeed(`https://notion.test/oauth?state=${state}`),
-	issueCredential: ({ credentials }) =>
+	issueCredential: () =>
 		Effect.succeed({
 			credentials: {
 				accessToken: 'refreshed_notion',

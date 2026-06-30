@@ -15,17 +15,21 @@ export namespace Binding {
 			const { db } = yield* Database.Service;
 			const row = yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: async () =>
-					(
-						await db.insert(BindingTable).values(values).returning()
-					)[0],
+				try: async () => {
+					const [created] = await db
+						.insert(BindingTable)
+						.values(values)
+						.returning();
+					return created;
+				},
 			});
-			if (!row)
-				{return yield* Effect.fail(
+			if (!row) {
+				return yield* Effect.fail(
 					new DbError({
 						cause: new Error('Binding insert returned no row.'),
 					})
-				);}
+				);
+			}
 			return row;
 		})
 	);
@@ -35,13 +39,13 @@ export namespace Binding {
 			const { db } = yield* Database.Service;
 			return yield* Effect.tryPromise({
 				catch: (cause) => new DbError({ cause }),
-				try: async () =>
-					(
-						await db
-							.select()
-							.from(BindingTable)
-							.where(eq(BindingTable.id, id))
-					)[0],
+				try: async () => {
+					const [row] = await db
+						.select()
+						.from(BindingTable)
+						.where(eq(BindingTable.id, id));
+					return row;
+				},
 			});
 		})
 	);

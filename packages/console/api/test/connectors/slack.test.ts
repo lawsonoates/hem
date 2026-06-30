@@ -13,7 +13,7 @@ test('exchanges a Slack OAuth code', async () => {
 			SLACK_CLIENT_ID: 'slack-client',
 			SLACK_CLIENT_SECRET: 'slack-secret',
 		},
-		async () =>
+		() =>
 			Response.json({
 				access_token: 'xoxb_test',
 				ok: true,

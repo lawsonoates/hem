@@ -13,7 +13,7 @@ test('exchanges a PlanetScale OAuth code', async () => {
 			PLANETSCALE_OAUTH_CLIENT_SECRET: 'ps-secret',
 			PUBLIC_API_URL: 'http://127.0.0.1:3000',
 		},
-		async (request) => {
+		(request) => {
 			if (request.url.includes('/oauth/token/info')) {
 				return Response.json({
 					active: true,

@@ -76,11 +76,11 @@ export const defaultLayer = layer;
 
 export const route = HttpRouter.use((router) =>
 	Effect.gen(function* () {
-		const auth = yield* Service;
+		const hemAuth = yield* Service;
 		yield* router.add(
 			'*',
 			'/v1/auth/*',
-			HttpEffect.fromWebHandler(auth.handler)
+			HttpEffect.fromWebHandler(hemAuth.handler)
 		);
 	})
 );

@@ -61,12 +61,10 @@ const auth = makeBetterAuth({
 });
 
 // ---- seed user ----
-let user = (
-	await db
-		.select()
-		.from(authSchema.user)
-		.where(eq(authSchema.user.email, seedUser.email))
-)[0];
+let [user] = await db
+	.select()
+	.from(authSchema.user)
+	.where(eq(authSchema.user.email, seedUser.email));
 
 if (!user) {
 	const response = await auth.handler(
@@ -82,12 +80,10 @@ if (!user) {
 		);
 		process.exit(1);
 	}
-	user = (
-		await db
-			.select()
-			.from(authSchema.user)
-			.where(eq(authSchema.user.email, seedUser.email))
-	)[0];
+	[user] = await db
+		.select()
+		.from(authSchema.user)
+		.where(eq(authSchema.user.email, seedUser.email));
 }
 
 if (!user) {
@@ -96,16 +92,25 @@ if (!user) {
 }
 
 // ---- clean legacy fixtures ----
-for (const connector of legacyConnectorFixtures) {
-	await db
-		.delete(bindingSchema.BindingTable)
-		.where(eq(bindingSchema.BindingTable.id, `bind_dev_${connector}`));
-	await db
-		.delete(installationSchema.InstallationTable)
-		.where(
-			eq(installationSchema.InstallationTable.id, `ins_dev_${connector}`)
-		);
-}
+await Promise.all(
+	legacyConnectorFixtures.map((connector) =>
+		db
+			.delete(bindingSchema.BindingTable)
+			.where(eq(bindingSchema.BindingTable.id, `bind_dev_${connector}`))
+	)
+);
+await Promise.all(
+	legacyConnectorFixtures.map((connector) =>
+		db
+			.delete(installationSchema.InstallationTable)
+			.where(
+				eq(
+					installationSchema.InstallationTable.id,
+					`ins_dev_${connector}`
+				)
+			)
+	)
+);
 
 await sql.close();
 

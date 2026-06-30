@@ -29,7 +29,7 @@ beforeAll(async () => {
 	const runtime = makeRuntime(HemDatabase.testLayer);
 	authRuntime = runtime;
 	const database = await runtime.runPromise(
-		Effect.map(HemDatabase.Service, ({ db }) => db)
+		HemDatabase.Service.pipe(Effect.map(({ db }) => db))
 	);
 	testAuth = makeBetterAuth({
 		baseURL: publicUrl,

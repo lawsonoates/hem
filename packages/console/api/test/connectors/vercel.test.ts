@@ -14,7 +14,7 @@ test('exchanges a Vercel OAuth code', async () => {
 			VERCEL_CLIENT_SECRET: 'vercel-secret',
 			VERCEL_INTEGRATION_SLUG: 'hem-test',
 		},
-		async () =>
+		() =>
 			Response.json({
 				access_token: 'vercel_token',
 				scope: 'read',

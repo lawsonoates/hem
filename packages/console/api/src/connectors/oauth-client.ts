@@ -1,6 +1,9 @@
-import type { ProviderCredentials } from '@hem/core/connector';
 import { CONNECTOR_DEFAULT_OUTPUTS } from '@hem/core/connector';
-import type { ManagedConnector, OAuthConnector } from '@hem/core/connector';
+import type {
+	ManagedConnector,
+	OAuthConnector,
+	ProviderCredentials,
+} from '@hem/core/connector';
 import type { Schema } from 'effect';
 import { Clock, Config, Effect, Option, Redacted } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/unstable/http';
