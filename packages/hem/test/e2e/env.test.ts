@@ -53,6 +53,72 @@ test('adds a manual env var and injects it into a child command', async () => {
 	}
 }, 30_000);
 
+test('lists manual and managed env vars', async () => {
+	const fixture = await createHemFixture();
+	try {
+		const hem = makeHemCli(fixture);
+		await fixture.writeProjectJson('.hem/secrets.json', {
+			bindings: [
+				{
+					bindingId: 'bind_123',
+					connector: 'github',
+					outputs: ['GITHUB_TOKEN'],
+				},
+			],
+			secrets: [
+				{
+					vars: [
+						{
+							id: 'var_foo',
+							label: 'FOO',
+							source: {
+								name: 'manual:FOO',
+								service: 'hem.env',
+								type: 'keychain',
+							},
+						},
+					],
+				},
+			],
+			version: 1,
+		});
+
+		const listed = await hem.run(['env', 'list']);
+		hem.expectExit(listed, 0, 'hem env list');
+		expect(listed.stdout).toContain('LABEL');
+		expect(listed.stdout).toContain('FOO');
+		expect(listed.stdout).toContain('var_foo');
+		expect(listed.stdout).toContain('manual');
+		expect(listed.stdout).toContain('GITHUB_TOKEN');
+		expect(listed.stdout).toContain('github');
+		expect(listed.stdout).toContain('123');
+		expect(listed.stdout).not.toContain('bind_123');
+	} finally {
+		await fixture.cleanup();
+	}
+}, 30_000);
+
+test('fails clearly when adding the same env var twice', async () => {
+	const fixture = await createHemFixture();
+	try {
+		const hem = makeHemCli(fixture);
+		const first = await hem.run(['env', 'add', 'DUPLICATE'], {
+			stdin: 'first-secret\n',
+		});
+		hem.expectExit(first, 0, 'hem env add DUPLICATE');
+
+		const second = await hem.run(['env', 'add', 'DUPLICATE'], {
+			stdin: 'second-secret\n',
+		});
+		hem.expectExit(second, 1, 'hem env add DUPLICATE again');
+		expect(second.stderr).toContain(
+			'Env var "DUPLICATE" is already managed.'
+		);
+	} finally {
+		await fixture.cleanup();
+	}
+}, 30_000);
+
 test('removes a manual env var and deletes its stored secret', async () => {
 	const fixture = await createHemFixture();
 	try {
