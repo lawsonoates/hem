@@ -37,10 +37,15 @@ export const createHemFixture = async (): Promise<HemE2eFixture> => {
 	await mkdir(homeDir, { recursive: true });
 
 	const env = {
+		HOME: homeDir,
 		HEM_TEST_HOME: homeDir,
 		HEM_TEST_NO_BROWSER: '1',
 		HEM_TEST_SECRET_STORE: secretStorePath,
 		NO_COLOR: '1',
+		XDG_CACHE_HOME: path.join(homeDir, '.cache'),
+		XDG_CONFIG_HOME: path.join(homeDir, '.config'),
+		XDG_DATA_HOME: path.join(homeDir, '.local/share'),
+		XDG_STATE_HOME: path.join(homeDir, '.local/state'),
 	} satisfies Record<string, string>;
 
 	return {
