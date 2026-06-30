@@ -41,10 +41,10 @@ test('connects a managed provider and injects leased credentials', async () => {
 			'console.log(process.env.GITHUB_TOKEN ?? "missing");\n'
 		);
 
-		const injected = await hem.run(['--', 'bun', 'print-env.ts'], {
+		const injected = await hem.run(['bun', 'print-env.ts'], {
 			env,
 		});
-		hem.expectExit(injected, 0, 'hem -- bun print-env.ts');
+		hem.expectExit(injected, 0, 'hem bun print-env.ts');
 		expect(injected.stdout.trim()).toBe('ghs_e2e_token');
 		expect(controlPlane.requests).toContain('POST /v1/credential-leases');
 	} finally {

@@ -21,6 +21,7 @@ export interface HemE2eFixture {
 	readonly cleanup: () => Promise<void>;
 	readonly readProjectJson: <T = unknown>(file: string) => Promise<T>;
 	readonly writeProjectFile: (file: string, content: string) => Promise<void>;
+	readonly writeProjectJson: (file: string, value: unknown) => Promise<void>;
 	readonly writeSession: (
 		baseUrl: string,
 		session?: { readonly accessToken?: string; readonly expiresAt?: string }
@@ -62,6 +63,8 @@ export const createHemFixture = async (): Promise<HemE2eFixture> => {
 			await mkdir(path.dirname(destination), { recursive: true });
 			await Bun.write(destination, content);
 		},
+		writeProjectJson: (file, value) =>
+			writeJson(path.join(projectDir, file), value),
 		writeSession: (baseUrl, session) =>
 			writeJson(path.join(homeDir, '.local/share/hem/auth.json'), {
 				[new URL(baseUrl).origin]: {
