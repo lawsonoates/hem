@@ -1,15 +1,24 @@
 import { BunServices } from '@effect/platform-bun';
-import { Layer } from 'effect';
+import { Config, Effect, Layer, Option } from 'effect';
 import { FetchHttpClient } from 'effect/unstable/http';
 
 import { layerHemApiClient } from '../api/client';
 import { Manifest } from '../manifest';
 import { BunSecret } from '../secret/bun';
 
-export const LocalLayer = Layer.mergeAll(
-	BunSecret.defaultLayer,
-	Manifest.defaultLayer
+const SecretLayer = Layer.unwrap(
+	Effect.gen(function* () {
+		const file = yield* Config.option(
+			Config.string('HEM_TEST_SECRET_STORE')
+		);
+		return Option.match(file, {
+			onNone: () => BunSecret.defaultLayer,
+			onSome: BunSecret.fileLayer,
+		});
+	})
 );
+
+export const LocalLayer = Layer.mergeAll(SecretLayer, Manifest.defaultLayer);
 
 export const CloudLayer = layerHemApiClient.pipe(
 	Layer.provideMerge(FetchHttpClient.layer)
