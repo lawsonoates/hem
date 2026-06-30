@@ -5,6 +5,7 @@
 	"type": "module",
 	"exports": {
 		"./binding": "./src/binding.ts",
+		"./credentials": "./src/credentials.ts",
 		"./database/database": "./src/database/database.ts",
 		"./installation": "./src/installation.ts",
 		"./database/schema/auth": "./src/database/schema/auth.sql.ts",
@@ -18,11 +19,13 @@
 		"typecheck": "tsgo -b --noEmit"
 	},
 	"dependencies": {
+		"@hem/core": "workspace:*",
 		"drizzle-orm": "catalog:",
 		"effect": "catalog:",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@electric-sql/pglite": "^0.4.5",
 		"@tsconfig/bun": "catalog:",
 		"@types/bun": "catalog:",
 		"@typescript/native-preview": "catalog:",

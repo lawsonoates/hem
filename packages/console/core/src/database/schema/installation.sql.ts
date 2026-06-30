@@ -1,27 +1,39 @@
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { MANAGED_CONNECTORS } from '@hem/core/connector';
+import type {
+	ManagedConnector,
+	ProviderAccountType,
+	ProviderCredentials,
+} from '@hem/core/connector';
+import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 import { user } from './auth.sql';
 import { id, timestamps } from './utils';
 
-export interface GithubAccount {
+export type {
+	ManagedConnector,
+	ProviderCredentials,
+} from '@hem/core/connector';
+
+export interface ProviderAccount {
 	readonly id: string;
 	readonly name: string;
-	readonly type: 'user' | 'organization';
+	readonly type: ProviderAccountType;
 }
 
-export type GithubPermissions = Readonly<Record<string, string>>;
+export type ConnectorPermissions = Readonly<Record<string, string>>;
 
-export const InstallationTable = sqliteTable(
+export const InstallationTable = pgTable(
 	'installation',
 	{
-		account: text('account', { mode: 'json' })
-			.$type<GithubAccount>()
-			.notNull(),
-		connector: text('connector', { enum: ['github'] }).notNull(),
-		grantedPermissions: text('granted_permissions', {
-			mode: 'json',
+		account: jsonb('account').$type<ProviderAccount>().notNull(),
+		connector: text('connector', {
+			enum: MANAGED_CONNECTORS as unknown as [string, ...string[]],
 		})
-			.$type<GithubPermissions>()
+			.$type<ManagedConnector>()
+			.notNull(),
+		credentials: jsonb('credentials').$type<ProviderCredentials | null>(),
+		grantedPermissions: jsonb('granted_permissions')
+			.$type<ConnectorPermissions>()
 			.notNull(),
 		id: id('ins'),
 		ownerId: text('owner_id')
@@ -35,10 +47,10 @@ export const InstallationTable = sqliteTable(
 	(table) => [index('installation_owner_id_idx').on(table.ownerId)]
 );
 
-export const InstallationRequestTable = sqliteTable(
+export const InstallationRequestTable = pgTable(
 	'installation_request',
 	{
-		expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
 		id: id('install'),
 		installationId: text('installation_id').references(
 			() => InstallationTable.id,

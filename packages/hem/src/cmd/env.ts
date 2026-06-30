@@ -1,12 +1,18 @@
 import { createInterface } from 'node:readline/promises';
 
+import {
+	CONNECTOR_DEFAULT_OUTPUTS,
+	CONNECTOR_LABELS,
+	MANAGED_CONNECTORS,
+} from '@hem/core/connector';
+import type { ManagedConnector } from '@hem/core/connector';
 import { HemError } from '@hem/core/error';
 import { envLabel, newVarId } from '@hem/core/manifest/schema';
 import type { EnvLabel, Source, Var } from '@hem/core/manifest/schema';
 import { Console, Effect, Option } from 'effect';
 import { Argument, Command, Prompt } from 'effect/unstable/cli';
 
-import { connectGithub } from '../control/cloud/github';
+import { connectProvider } from '../control/cloud/provider';
 import { Manifest } from '../manifest';
 import { BunSecret } from '../secret/bun';
 import { EnvSecret } from '../secret/env';
@@ -119,15 +125,17 @@ const promptForManualName = Prompt.text({
 				),
 });
 
+const connectorChoice = (connector: ManagedConnector) => ({
+	description: `Connect ${CONNECTOR_LABELS[connector]} for ${CONNECTOR_DEFAULT_OUTPUTS[connector].join(', ')}`,
+	title: `${CONNECTOR_LABELS[connector]} connector`,
+	value: connector,
+});
+
 const addInteractively = Effect.gen(function* () {
 	const source = yield* Prompt.run(
 		Prompt.select({
 			choices: [
-				{
-					description: 'Install the Hem GitHub App for GITHUB_TOKEN',
-					title: 'GitHub connector',
-					value: 'github' as const,
-				},
+				...MANAGED_CONNECTORS.map(connectorChoice),
 				{
 					description: 'Store a named value in the local keychain',
 					title: 'Manual token',
@@ -138,7 +146,7 @@ const addInteractively = Effect.gen(function* () {
 		})
 	);
 
-	if (source === 'github') return yield* connectGithub;
+	if (source !== 'manual') return yield* connectProvider(source);
 
 	const envName = yield* Prompt.run(promptForManualName);
 	return yield* addManual(envName);

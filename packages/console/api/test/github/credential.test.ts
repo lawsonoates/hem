@@ -3,23 +3,42 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { ConfigProvider, Effect, Layer } from 'effect';
 
-import { defaultLayer, GithubConnector } from '../../src/github';
+import { defaultLayer, GithubConnector } from '../../src/connectors/github';
+
+const serveTestGithubApi = (
+	fetch: (request: Request) => Response | Promise<Response>
+) => {
+	for (let port = 49_152; port < 49_252; port += 1) {
+		try {
+			return Bun.serve({ fetch, hostname: '127.0.0.1', port });
+		} catch (error) {
+			if (
+				typeof error === 'object' &&
+				error !== null &&
+				'code' in error &&
+				error.code === 'EADDRINUSE'
+			)
+				continue;
+
+			throw error;
+		}
+	}
+
+	throw new Error('Could not start test GitHub API server.');
+};
 
 test('issues a credential without narrowing the installation grant', async () => {
 	const requests: { body: string; method: string; pathname: string }[] = [];
-	const server = Bun.serve({
-		fetch: async (request) => {
-			requests.push({
-				body: await request.text(),
-				method: request.method,
-				pathname: new URL(request.url).pathname,
-			});
-			return Response.json({
-				expires_at: '2026-06-22T01:00:00.000Z',
-				token: 'ghs_test',
-			});
-		},
-		port: 0,
+	const server = serveTestGithubApi(async (request) => {
+		requests.push({
+			body: await request.text(),
+			method: request.method,
+			pathname: new URL(request.url).pathname,
+		});
+		return Response.json({
+			expires_at: '2026-06-22T01:00:00.000Z',
+			token: 'ghs_test',
+		});
 	});
 
 	try {

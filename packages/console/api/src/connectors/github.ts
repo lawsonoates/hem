@@ -50,7 +50,7 @@ export class GithubConnectorError extends Schema.TaggedErrorClass<GithubConnecto
 ) {}
 
 class GithubInstallationResponse extends Schema.Class<GithubInstallationResponse>(
-	'@hem/console-api/github/GithubInstallationResponse'
+	'@hem/console-api/connectors/GithubInstallationResponse'
 )({
 	account: Schema.Struct({
 		id: Schema.Number,
@@ -62,7 +62,7 @@ class GithubInstallationResponse extends Schema.Class<GithubInstallationResponse
 }) {}
 
 class GithubAccessTokenResponse extends Schema.Class<GithubAccessTokenResponse>(
-	'@hem/console-api/github/GithubAccessTokenResponse'
+	'@hem/console-api/connectors/GithubAccessTokenResponse'
 )({
 	expires_at: Schema.String,
 	token: Schema.String,
@@ -189,7 +189,7 @@ const installationUrl = (appSlug: string, state: string) => {
 };
 
 export class Service extends Context.Service<Service, Interface>()(
-	'@hem/console-api/github/GithubConnector'
+	'@hem/console-api/connectors/GithubConnector'
 ) {}
 
 export const layer = Layer.effect(
@@ -313,4 +313,4 @@ export const layer = Layer.effect(
 export const defaultLayer = layer.pipe(Layer.provide(FetchHttpClient.layer));
 
 // oxlint-disable-next-line import/no-self-import, oxc/no-barrel-file -- namespace projection for Effect service module
-export * as GithubConnector from '.';
+export * as GithubConnector from './github';

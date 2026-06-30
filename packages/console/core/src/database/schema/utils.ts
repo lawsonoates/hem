@@ -1,4 +1,4 @@
-import { integer, text } from 'drizzle-orm/sqlite-core';
+import { text, timestamp } from 'drizzle-orm/pg-core';
 
 export const id = (prefix: string) =>
 	text('id')
@@ -6,11 +6,11 @@ export const id = (prefix: string) =>
 		.$defaultFn(() => `${prefix}_${crypto.randomUUID()}`);
 
 export const timestamps = {
-	createdAt: integer('created_at', { mode: 'timestamp_ms' })
+	createdAt: timestamp('created_at', { withTimezone: true })
 		.notNull()
-		.$defaultFn(() => new Date()),
-	updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+		.defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
 		.notNull()
-		.$defaultFn(() => new Date())
+		.defaultNow()
 		.$onUpdate(() => new Date()),
 };

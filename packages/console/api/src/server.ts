@@ -3,10 +3,10 @@ import { Config, Effect, Layer } from 'effect';
 import { HttpRouter, HttpServerResponse } from 'effect/unstable/http';
 
 import { deviceAuthorizationPage } from './device-page';
-import { ApiLayer, ServicesLayer } from './effect/app-runtime';
+import { HttpRoutesLayer, ServicesLayer } from './effect/app-runtime';
 
 const AppLive = Layer.mergeAll(
-	ApiLayer,
+	HttpRoutesLayer,
 	HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			yield* router.add(

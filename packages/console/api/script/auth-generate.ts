@@ -4,9 +4,10 @@ import { $ } from 'bun';
 
 const outputPath = '../core/src/database/schema/auth.sql.ts';
 const absoluteOutputPath = decodeURIComponent(
-	new URL('../../core/src/database/schema/auth.sql.ts', import.meta.url).pathname
+	new URL('../../core/src/database/schema/auth.sql.ts', import.meta.url)
+		.pathname
 );
-const configPath = './src/auth.config.ts';
+const configPath = './src/auth/index.ts';
 const lintBanner = `/* eslint-disable sort-keys */
 /* oxlint-disable no-inline-comments */`;
 

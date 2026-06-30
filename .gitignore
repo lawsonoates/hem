@@ -35,3 +35,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 .turbo
 .hem
+
+# local control-plane SQLite database
+packages/console/api/hem.db*

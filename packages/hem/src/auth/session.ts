@@ -1,5 +1,5 @@
-import { Path as GlobalPath } from '@hem/core/global';
 import { HemError } from '@hem/core/error';
+import { Path as GlobalPath } from '@hem/core/global';
 import { Config, Effect, FileSystem, Schema } from 'effect';
 
 const StoredSession = Schema.Struct({
@@ -28,8 +28,8 @@ const readSessions = Effect.gen(function* () {
 	if (!(yield* fs.exists(GlobalPath.auth))) return {};
 
 	const content = yield* fs.readFileString(GlobalPath.auth);
-	return yield* Schema.decodeUnknownEffect(StoredSessions)(
-		JSON.parse(content)
+	return yield* Schema.decodeEffect(Schema.fromJsonString(StoredSessions))(
+		content
 	).pipe(
 		Effect.mapError(
 			() =>

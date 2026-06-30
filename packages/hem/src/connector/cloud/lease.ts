@@ -1,17 +1,15 @@
-import { HemError } from '@hem/core/error';
 import {
 	BindingId,
 	CreateCredentialLeaseRequest,
 } from '@hem/console-api/schema';
+import { HemError } from '@hem/core/error';
+import type { ManagedBinding } from '@hem/core/manifest/schema';
 import { Effect } from 'effect';
 
 import { HemApiClient, withAccessToken } from '../../api/client';
 import { getSession } from '../../auth/session';
-import type { ManagedBinding } from '@hem/core/manifest/schema';
 
-export const resolveManagedBindings = (
-	bindings: readonly ManagedBinding[]
-) =>
+export const resolveManagedBindings = (bindings: readonly ManagedBinding[]) =>
 	Effect.gen(function* () {
 		if (bindings.length === 0) return [];
 

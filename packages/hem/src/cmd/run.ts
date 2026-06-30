@@ -2,8 +2,8 @@ import { HemError } from '@hem/core/error';
 import { Effect } from 'effect';
 
 import { resolveManagedBindings } from '../connector/cloud/lease';
-import { resolveEntry } from '../manifest/resolve';
 import { Manifest } from '../manifest';
+import { resolveEntry } from '../manifest/resolve';
 
 const spawnCommand = (input: {
 	readonly args: readonly string[];

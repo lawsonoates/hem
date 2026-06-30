@@ -1,19 +1,15 @@
 import { Console, Effect, Option } from 'effect';
 import { Command } from 'effect/unstable/cli';
 
-import { HemApiClient, withAccessToken } from '../api/client';
+import { signOut } from '../auth/client';
 import { apiBaseUrl, clearSession, getSession } from '../auth/session';
 
 const logout = Effect.gen(function* () {
 	const baseUrl = yield* apiBaseUrl;
 	const session = yield* getSession.pipe(Effect.option);
-	if (Option.isSome(session)) {
-		const client = yield* HemApiClient;
-		yield* withAccessToken(
-			session.value.accessToken,
-			client.auth.signOut({})
-		).pipe(Effect.ignore);
-	}
+	if (Option.isSome(session))
+		yield* signOut(session.value.accessToken).pipe(Effect.ignore);
+
 	yield* clearSession(baseUrl);
 
 	yield* Console.log('✓ You are now logged out');

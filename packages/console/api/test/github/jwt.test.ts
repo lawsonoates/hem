@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
 
-import { Effect, Redacted } from 'effect';
+import { Effect, Redacted, Schema } from 'effect';
 
-import { createGithubAppJwt } from '../../src/github';
+import { createGithubAppJwt } from '../../src/connectors/github';
 
 const toPem = (bytes: ArrayBuffer) => {
 	const binary = String.fromCodePoint(...new Uint8Array(bytes));
@@ -16,7 +16,9 @@ const toPem = (bytes: ArrayBuffer) => {
 
 const decodePart = (part: string) => {
 	const base64 = part.replaceAll('-', '+').replaceAll('_', '/');
-	return JSON.parse(atob(base64)) as Record<string, unknown>;
+	return Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(
+		atob(base64)
+	) as Record<string, unknown>;
 };
 
 const decodeBase64Url = (value: string) => {

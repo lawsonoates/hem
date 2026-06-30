@@ -1,109 +1,107 @@
 {
-	"version": "6",
-	"dialect": "sqlite",
-	"id": "05f4242e-ca25-427c-8a95-17db808fd931",
+	"id": "e1be77a6-63ed-4249-b22e-b8d506252483",
 	"prevId": "00000000-0000-0000-0000-000000000000",
+	"version": "7",
+	"dialect": "postgresql",
 	"tables": {
-		"account": {
+		"public.account": {
 			"name": "account",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"account_id": {
 					"name": "account_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"provider_id": {
 					"name": "provider_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"user_id": {
 					"name": "user_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"access_token": {
 					"name": "access_token",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"refresh_token": {
 					"name": "refresh_token",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"id_token": {
 					"name": "id_token",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"access_token_expires_at": {
 					"name": "access_token_expires_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"refresh_token_expires_at": {
 					"name": "refresh_token_expires_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"scope": {
 					"name": "scope",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"password": {
 					"name": "password",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				}
 			},
 			"indexes": {
 				"account_userId_idx": {
 					"name": "account_userId_idx",
-					"columns": ["user_id"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "user_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {
@@ -119,158 +117,151 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"device_code": {
+		"public.device_code": {
 			"name": "device_code",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"device_code": {
 					"name": "device_code",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"user_code": {
 					"name": "user_code",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"user_id": {
 					"name": "user_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"expires_at": {
 					"name": "expires_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"status": {
 					"name": "status",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"last_polled_at": {
 					"name": "last_polled_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"polling_interval": {
 					"name": "polling_interval",
 					"type": "integer",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"client_id": {
 					"name": "client_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"scope": {
 					"name": "scope",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				}
 			},
 			"indexes": {},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"session": {
+		"public.session": {
 			"name": "session",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"expires_at": {
 					"name": "expires_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"token": {
 					"name": "token",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"ip_address": {
 					"name": "ip_address",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"user_agent": {
 					"name": "user_agent",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"user_id": {
 					"name": "user_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				}
 			},
 			"indexes": {
-				"session_token_unique": {
-					"name": "session_token_unique",
-					"columns": ["token"],
-					"isUnique": true
-				},
 				"session_userId_idx": {
 					"name": "session_userId_idx",
-					"columns": ["user_id"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "user_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {
@@ -285,184 +276,190 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"uniqueConstraints": {
+				"session_token_unique": {
+					"name": "session_token_unique",
+					"nullsNotDistinct": false,
+					"columns": ["token"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"user": {
+		"public.user": {
 			"name": "user",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"name": {
 					"name": "name",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"email": {
 					"name": "email",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"email_verified": {
 					"name": "email_verified",
-					"type": "integer",
+					"type": "boolean",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false,
 					"default": false
 				},
 				"image": {
 					"name": "image",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				}
 			},
-			"indexes": {
-				"user_email_unique": {
-					"name": "user_email_unique",
-					"columns": ["email"],
-					"isUnique": true
-				}
-			},
+			"indexes": {},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"uniqueConstraints": {
+				"user_email_unique": {
+					"name": "user_email_unique",
+					"nullsNotDistinct": false,
+					"columns": ["email"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"verification": {
+		"public.verification": {
 			"name": "verification",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"identifier": {
 					"name": "identifier",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"value": {
 					"name": "value",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"expires_at": {
 					"name": "expires_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				}
 			},
 			"indexes": {
 				"verification_identifier_idx": {
 					"name": "verification_identifier_idx",
-					"columns": ["identifier"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "identifier",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"binding": {
+		"public.binding": {
 			"name": "binding",
+			"schema": "",
 			"columns": {
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"installation_id": {
 					"name": "installation_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
-				},
-				"permissions": {
-					"name": "permissions",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
-				},
-				"repositories": {
-					"name": "repositories",
-					"type": "text",
-					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				}
 			},
 			"indexes": {
 				"binding_installation_id_idx": {
 					"name": "binding_installation_id_idx",
-					"columns": ["installation_id"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "installation_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {
@@ -478,71 +475,74 @@
 			},
 			"compositePrimaryKeys": {},
 			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"installation_request": {
+		"public.installation_request": {
 			"name": "installation_request",
+			"schema": "",
 			"columns": {
 				"expires_at": {
 					"name": "expires_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"installation_id": {
 					"name": "installation_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": false,
-					"autoincrement": false
+					"notNull": false
 				},
 				"owner_id": {
 					"name": "owner_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"state": {
 					"name": "state",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				}
 			},
 			"indexes": {
-				"installation_request_state_unique": {
-					"name": "installation_request_state_unique",
-					"columns": ["state"],
-					"isUnique": true
-				},
 				"installation_request_owner_id_idx": {
 					"name": "installation_request_owner_id_idx",
-					"columns": ["owner_id"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "owner_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {
@@ -566,79 +566,93 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"uniqueConstraints": {
+				"installation_request_state_unique": {
+					"name": "installation_request_state_unique",
+					"nullsNotDistinct": false,
+					"columns": ["state"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		},
-		"installation": {
+		"public.installation": {
 			"name": "installation",
+			"schema": "",
 			"columns": {
 				"account": {
 					"name": "account",
-					"type": "text",
+					"type": "jsonb",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"connector": {
 					"name": "connector",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
+				},
+				"credentials": {
+					"name": "credentials",
+					"type": "jsonb",
+					"primaryKey": false,
+					"notNull": false
 				},
 				"granted_permissions": {
 					"name": "granted_permissions",
-					"type": "text",
+					"type": "jsonb",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"id": {
 					"name": "id",
 					"type": "text",
 					"primaryKey": true,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"owner_id": {
 					"name": "owner_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"provider_installation_id": {
 					"name": "provider_installation_id",
 					"type": "text",
 					"primaryKey": false,
-					"notNull": true,
-					"autoincrement": false
+					"notNull": true
 				},
 				"created_at": {
 					"name": "created_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				},
 				"updated_at": {
 					"name": "updated_at",
-					"type": "integer",
+					"type": "timestamp with time zone",
 					"primaryKey": false,
 					"notNull": true,
-					"autoincrement": false
+					"default": "now()"
 				}
 			},
 			"indexes": {
-				"installation_provider_installation_id_unique": {
-					"name": "installation_provider_installation_id_unique",
-					"columns": ["provider_installation_id"],
-					"isUnique": true
-				},
 				"installation_owner_id_idx": {
 					"name": "installation_owner_id_idx",
-					"columns": ["owner_id"],
-					"isUnique": false
+					"columns": [
+						{
+							"expression": "owner_id",
+							"isExpression": false,
+							"asc": true,
+							"nulls": "last"
+						}
+					],
+					"isUnique": false,
+					"concurrently": false,
+					"method": "btree",
+					"with": {}
 				}
 			},
 			"foreignKeys": {
@@ -653,18 +667,27 @@
 				}
 			},
 			"compositePrimaryKeys": {},
-			"uniqueConstraints": {},
-			"checkConstraints": {}
+			"uniqueConstraints": {
+				"installation_provider_installation_id_unique": {
+					"name": "installation_provider_installation_id_unique",
+					"nullsNotDistinct": false,
+					"columns": ["provider_installation_id"]
+				}
+			},
+			"policies": {},
+			"checkConstraints": {},
+			"isRLSEnabled": false
 		}
 	},
-	"views": {},
 	"enums": {},
+	"schemas": {},
+	"sequences": {},
+	"roles": {},
+	"policies": {},
+	"views": {},
 	"_meta": {
+		"columns": {},
 		"schemas": {},
-		"tables": {},
-		"columns": {}
-	},
-	"internal": {
-		"indexes": {}
+		"tables": {}
 	}
 }

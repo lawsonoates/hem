@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./connector": "./src/connector.ts",
 		"./error": "./src/error.ts",
 		"./global": "./src/global.ts",
 		"./manifest/schema": "./src/manifest/schema.ts"
